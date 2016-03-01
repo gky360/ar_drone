@@ -18,7 +18,8 @@ String unit = "cm";
 int targetId = 3;
 int targetParam = 0;
 int targetParamMax = 4;
-int targetParamTimes = 30;
+int targetParamCounter = 0;
+int targetParamCounterMax = 20;
 
 boolean autoMode = false;
 
@@ -143,7 +144,7 @@ void draw() {
   float ref_imx = width / 2;
   float dist = 1500;
   float th_imx = width / 12;
-  float thx = 500;
+  float thx = 100;
   float thy = 200;
   float thz = 100;
   float gain_imx = 0.4;
@@ -165,16 +166,16 @@ void draw() {
   //   //"go to ID#1"
   // }
 
-  switch (targetParam / targetParamTimes) {
+  switch (targetParam) {
     case 0:
       // x
       if (x > thx) {
-        text("Goleft", width/128, height/12 * 2);
-        if (autoMode) ardrone.goLeft((int)input_x);
-        isHover = false;
-      } else if (x < -thx) {
         text("Goright", width/128, height/12 * 2);
         if (autoMode) ardrone.goRight((int)input_x);
+        isHover = false;
+      } else if (x < -thx) {
+        text("Goleft", width/128, height/12 * 2);
+        if (autoMode) ardrone.goLeft((int)input_x);
         isHover = false;
       }
       break;
@@ -203,6 +204,7 @@ void draw() {
       }
       break;
     case 3:
+      // imx
       if (isTracking) {
         float imx = 0.0;
         for (int i = 0; i < 4; i++) {
@@ -226,13 +228,19 @@ void draw() {
       }
       break;
   }
-  targetParam = (targetParam + 1) % (targetParamMax * targetParamTimes);
-
   if (isHover) {
     text("hover", width/128, height/12 * 1);
     if (autoMode) ardrone.stop();
   }
-  text(targetParam / targetParamTimes, width/128, height/12 * 6);
+
+  text("targetParam: " + targetParam, width/128, height/12 * 6);
+  if (isHover || targetParamCounter >= targetParamCounterMax) {
+    targetParamCounter = 0;
+    targetParam = (targetParam + 1) % (targetParamMax);
+  } else {
+    targetParamCounter++;
+  }
+
 }
 
 // controlling AR.Drone through key input
