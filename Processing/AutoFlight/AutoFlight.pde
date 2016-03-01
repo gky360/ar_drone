@@ -58,24 +58,33 @@ void draw() {
   tracker.Detect(img);
   background(0);
   tracker.DrawBackground(img);
-  
+
+  PVector[] mv2d = {};
+  boolean isTracking = false;
+
   for (int i=0; i<numTargets; i++) {
-    if (!tracker.IsExistTarget(i))
+    if (!tracker.IsExistTarget(i)) {
       continue;
+    }
 
     // draw marker contour
     int step = 360 / numTargets;
-    PVector[] v = tracker.GetTargetCurrentMarkerVertex2D(i);  
+    PVector[] v = tracker.GetTargetCurrentMarkerVertex2D(i);
     colorMode(HSB, 360, 100, 100, 100);
     stroke(i*step, 100, 100, 100);
     strokeWeight(4);
     noFill();
     beginShape();
-    vertex(v[0].x, v[0].y);      
+    vertex(v[0].x, v[0].y);
     vertex(v[1].x, v[1].y);
     vertex(v[2].x, v[2].y);
     vertex(v[3].x, v[3].y);
     endShape(CLOSE);
+
+    if (i == targetId) {
+     mv2d = v;
+     isTracking = true;
+    }
 
     // Target 2 camera matrix
     PMatrix3D T2C = tracker.GetTargetMatrix(i);
@@ -86,7 +95,14 @@ void draw() {
     box(0.7 * tracker.GetTargetCurrentMarkerWidth(i));
     tracker.EndTransform();
   }
- 
+
+  if (isTracking) {
+    text("(" + nf(mv2d[0].x, 1, 3) + ", " + nf(mv2d[0].y, 1, 3) + ")", width / 128 * 50, height / 12 * 4);
+    text("(" + nf(mv2d[1].x, 1, 3) + ", " + nf(mv2d[1].y, 1, 3) + ")", width / 128 * 50, height / 12 * 5);
+    text("(" + nf(mv2d[2].x, 1, 3) + ", " + nf(mv2d[2].y, 1, 3) + ")", width / 128 * 50, height / 12 * 6);
+    text("(" + nf(mv2d[3].x, 1, 3) + ", " + nf(mv2d[3].y, 1, 3) + ")", width / 128 * 50, height / 12 * 7);
+  }
+
   // draw status bar
   colorMode(RGB, 256, 256, 256, 100);
   fill(0, 0, 0, 50);
@@ -113,78 +129,94 @@ void draw() {
     }
     return;
   }
-  
+
   // get marker position
   PVector P = tracker.GetTargetPosition(targetId);
   float x = P.x *  10; //[cm -> mm]
   float y = P.y *  10; //[cm -> mm]
   float z = P.z * -10; //[cm -> mm]
   text(nfp(x/1000,1,3) + ", " + nfp(y/1000,1,3) + ", " + nf(z/1000,2,3), width/128*50, height/12);
-  
+
+  float ref_imx = width / 2;
   float dist = 1500;
+  float th_imx = width / 12;
   float thx = 500;
   float thy = 200;
-  float thz = 200;
+  float thz = 100;
+  float gain_imx = 0.4;
   float gain_y = 0.4;
-  float gain_z = 0.4;
+  float gain_z = 0.05;
+  float input_y = min(abs(gain_y * y), 50);
+  float input_z = min(abs(gain_z * (z - dist)), 10);
+  boolean isHover = true;
 
   // display the distance to the marker
-  float d = sqrt(x * x + y * y + z * z);
-  text(nf(d / 1000, 1, 3), width / 128 * 50, height/12 * 2);
-  if (d <= 1500) {
-    text("OK", width / 128 * 50, height/12 * 3);
-  }
-  text(nf(d / 1000, 1, 3), width / 128 * 50, height/12 * 2);
+  float d = tracker.GetTargetDistance(targetId)*10; // sqrt(x * x + y * y + z * z);
+  text(nf(d / 1000, 1, 3) + ((1000 <= d && d <= 2000) ? " Happy!!" : ""), width / 128 * 50, height/12 * 2);
+  text(nf(input_z, 1, 3), width / 128 * 50, height/12 * 3);
 
-  float[] m2d={10000,10000,10000,10000};
-  m2d[targetId] = z;
-  //m2d[targetId] = tracker.GetTargetDistance(targetId)*10; //sqrt(x*x + y*y + z*z)
-
-  if(targetId == 3 && (m2d[3] < 2000)){
-    targetId = 1;
-    //"go to ID#1"
-  }
-
-
-  float input_y = min(abs(gain_y * y), 50);
-  float input_z = min(abs(gain_z * z), 30);
-
-
-  if (y > thy) {
-    text("down", width/128, height/12);
-    if (autoMode) ardrone.down((int)input_y);
-    return;
-  } 
-  else if (y < -thy) {
-    text("up", width/128, height/12);
-    if (autoMode) ardrone.up((int)input_y);
-    return;
-  }
-
-  if (x > thx) {
-    text("right", width/128, height/12);
-    if (autoMode) ardrone.spinRight(10);
-    return;
-  } 
-  else if (x < -thx) {
-    text("left", width/128, height/12);
-    if (autoMode) ardrone.spinLeft(10);
-    return;
-  }
+  // if(targetId == 3 && (m2d[3] < 2000)){
+  //   targetId = 1;
+  //   //"go to ID#1"
+  // }
 
   if ((z - dist) > thz) {
-    text("forward", width/128, height/12);
+    text("forward", width/128, height/12 * 2);
     if (autoMode) ardrone.forward((int)input_z);
-    return;
-  } 
-  else if ((z - dist) < -thz) {
-    text("backward", width/128, height/12);
+    isHover = false;
+  } else if ((z - dist) < -thz) {
+    text("backward", width/128, height/12 * 2);
     if (autoMode) ardrone.backward((int)input_z);
-    return;
+    isHover = false;
   }
 
-  text("hover", width/128, height/12);
-  if (autoMode) ardrone.stop();
+  if (y > thy) {
+    text("down", width/128, height/12 * 3);
+    if (autoMode) ardrone.down((int)input_y);
+    isHover = false;
+  } else if (y < -thy) {
+    text("up", width/128, height/12 * 3);
+    if (autoMode) ardrone.up((int)input_y);
+    isHover = false;
+  }
+
+  if (isTracking) {
+    float imx = 0.0;
+    for (int i = 0; i < 4; i++) {
+      imx += mv2d[i].x;
+    }
+    imx /= 4;
+    float input_imx = min(abs(gain_imx * (imx - ref_imx)), 20);
+    if ((imx - ref_imx) > th_imx) {
+      text("right", width/128, height/12 * 4);
+      if (autoMode) {
+        ardrone.spinRight((int)input_imx);
+      }
+      isHover = false;
+    } else if ((imx - ref_imx) < -th_imx) {
+      text("left", width/128, height/12 * 4);
+      if (autoMode) {
+        ardrone.spinLeft((int)input_imx);
+      }
+      isHover = false;
+    }
+  }
+
+  // if (x > thx) {
+  //   text("right", width/128, height/12);
+  //   if (autoMode) ardrone.spinRight(10);
+  //   return;
+  // } 
+  // else if (x < -thx) {
+  //   text("left", width/128, height/12);
+  //   if (autoMode) ardrone.spinLeft(10);
+  //   return;
+  // }
+
+  if (isHover) {
+    text("hover", width/128, height/12 * 1);
+    if (autoMode) ardrone.stop();
+  }
 }
 
 // controlling AR.Drone through key input
