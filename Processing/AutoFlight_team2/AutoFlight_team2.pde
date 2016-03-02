@@ -15,11 +15,11 @@ int numMarkersTarget = 2;
 float targetWidth = 49.0f; // [cm]
 String unit = "cm";
 
-int targetId = 3;
+int targetId = 1;
 int targetParam = 0;
 int targetParamMax = 4;
 int targetParamCounter = 0;
-int targetParamCounterMax = 20;
+int targetParamCounterMax = 5;
 
 boolean autoMode = false;
 
@@ -136,95 +136,82 @@ void draw() {
 
   // get marker position
   PVector P = tracker.GetTargetPosition(targetId);
-  float x = P.x *  10; //[cm -> mm]
+  PVector R = tracker.GetCameraRotationYawPitchRoll(targetId);
+  float x = atan(P.x / P.z) * 180 / PI;
   float y = P.y *  10; //[cm -> mm]
   float z = P.z * -10; //[cm -> mm]
+  float w = z * (R.y - atan(x / z)); // radian
   text(nfp(x/1000,1,3) + ", " + nfp(y/1000,1,3) + ", " + nf(z/1000,2,3), width/128*50, height/12);
 
-  float ref_imx = width / 2;
   float dist = 1500;
-  float th_imx = width / 12;
-  float thx = 100;
-  float thy = 200;
-  float thz = 100;
-  float gain_imx = 0.4;
-  float gain_x = 0.2;
+  float thx = 5;
+  float thy = 50;
+  float thz = 50;
+  float thw = 50;
+  float gain_x = 4;
   float gain_y = 0.4;
-  float gain_z = 0.05;
-  float input_x = min(abs(gain_x * x), 20);
+  float gain_z = 0.04;
+  float gain_w = 0.008;
+  float input_x = min(abs(gain_x * x), 50);
   float input_y = min(abs(gain_y * y), 50);
-  float input_z = min(abs(gain_z * (z - dist)), 10);
+  float input_z = min(abs(gain_z * (z - dist)), 30);
+  float input_w = min(abs(gain_w * w), 10);
   boolean isHover = true;
 
   // display the distance to the marker
   float d = tracker.GetTargetDistance(targetId)*10; // sqrt(x * x + y * y + z * z);
   text(nf(d / 1000, 1, 3) + ((1000 <= d && d <= 2000) ? " Happy!!" : ""), width / 128 * 50, height/12 * 2);
-  text(nf(input_z, 1, 3), width / 128 * 50, height/12 * 3);
-
-  // if(targetId == 3 && (m2d[3] < 2000)){
-  //   targetId = 1;
-  //   //"go to ID#1"
-  // }
+  text("input_x: " + nf(input_x, 1, 3) + ", theta: " + nf((R.y - atan(x / z)) * 180 / PI, 1, 3), width / 128 * 50, height/12 * 3);
 
   switch (targetParam) {
     case 0:
       // x
       if (x > thx) {
-        text("Goright", width/128, height/12 * 2);
-        if (autoMode) ardrone.goRight((int)input_x);
+        text("spinLeft", width/128, height/12 * 2);
+        if (autoMode) ardrone.spinLeft((int)input_x);
         isHover = false;
       } else if (x < -thx) {
-        text("Goleft", width/128, height/12 * 2);
-        if (autoMode) ardrone.goLeft((int)input_x);
+        text("spinRight", width/128, height/12 * 2);
+        if (autoMode) ardrone.spinRight((int)input_x);
         isHover = false;
       }
       break;
     case 1:
+      // w
+      if (abs(x) < thx * 2) {
+        if (w > thw) {
+          text("goLeft", width/128, height/12 * 2);
+          if (autoMode) ardrone.goLeft((int)input_w);
+          isHover = false;
+        } else if (w < -thw) {
+          text("goRight", width/128, height/12 * 2);
+          if (autoMode) ardrone.goRight((int)input_w);
+          isHover = false;
+        }
+      }
+      break;
+    case 2:
       // y
       if (y > thy) {
-        text("down", width/128, height/12 * 3);
+        text("down", width/128, height/12 * 2);
         if (autoMode) ardrone.down((int)input_y);
         isHover = false;
       } else if (y < -thy) {
-        text("up", width/128, height/12 * 3);
+        text("up", width/128, height/12 * 2);
         if (autoMode) ardrone.up((int)input_y);
         isHover = false;
       }
       break;
-    case 2:
+    case 3:
       // z
       if ((z - dist) > thz) {
-        text("forward", width/128, height/12 * 4);
+        text("forward", width/128, height/12 * 2);
         if (autoMode) ardrone.forward((int)input_z);
         isHover = false;
       } else if ((z - dist) < -thz) {
-        text("backward", width/128, height/12 * 4);
+        text("backward", width/128, height/12 * 2);
         if (autoMode) ardrone.backward((int)input_z);
         isHover = false;
-      }
-      break;
-    case 3:
-      // imx
-      if (isTracking) {
-        float imx = 0.0;
-        for (int i = 0; i < 4; i++) {
-          imx += mv2d[i].x;
-        }
-        imx /= 4;
-        float input_imx = min(abs(gain_imx * (imx - ref_imx)), 20);
-        if ((imx - ref_imx) > th_imx) {
-          text("right", width/128, height/12 * 5);
-          if (autoMode) {
-            ardrone.spinRight((int)input_imx);
-          }
-          isHover = false;
-        } else if ((imx - ref_imx) < -th_imx) {
-          text("left", width/128, height/12 * 5);
-          if (autoMode) {
-            ardrone.spinLeft((int)input_imx);
-          }
-          isHover = false;
-        }
       }
       break;
   }
@@ -233,7 +220,7 @@ void draw() {
     if (autoMode) ardrone.stop();
   }
 
-  text("targetParam: " + targetParam, width/128, height/12 * 6);
+  text("targetParam: " + targetParam, width/128, height/12 * 3);
   if (isHover || targetParamCounter >= targetParamCounterMax) {
     targetParamCounter = 0;
     targetParam = (targetParam + 1) % (targetParamMax);
