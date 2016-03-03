@@ -33,10 +33,12 @@ int GId = 0;
 boolean GG = false;
 boolean Sstep = false;
 int Stimer = 0;
-int Slim = 4 * HtimerUnit;
+int Slim = 50;
 boolean Bstep = false;
 int Btimer = 0;
-int Blim = 3 * HtimerUnit;
+int Blim1 = 40;
+int Blim2 = 60 + Blim1;
+int Blim3 = 20 + Blim2;
 
 float pre_z = 0.0;
 
@@ -44,8 +46,8 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 
   // not found
   if (!tracker.IsExistTarget(targetId)) {
-    text("backward (not tracking)", width/128, height / lineCount);
-    // text("rotate", width/128, height / lineCount);
+    // text("backward (not tracking)", width/128, height / lineCount);
+    text("rotate", width/128, height / lineCount);
     if (autoMode) {
       // ardrone.backward(10);
       ardrone.spinRight(20);
@@ -141,8 +143,8 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
       break;
   }
   if (isHover) {
-    text("hover", width/128, height / lineCount * 1);
-    if (autoMode) ardrone.stop();
+    text("nothing", width/128, height / lineCount * 1);
+    // if (autoMode) ardrone.stop();
   }
 
   text("targetParam: " + targetParam, width/128, height / lineCount * 3);
@@ -262,14 +264,21 @@ void draw() {
   }
 
   if (Bstep == true) {
-    if (Btimer < Blim) {
+    if (Btimer < Blim1) {
+      ardrone.spinLeft(50);
+      Btimer ++;
+    }
+    else if (Btimer >= Blim1 && Btimer < Blim2) {
       ardrone.backward((20));
+      Btimer ++;
+    }
+    else if (Btimer >= Blim2 && Btimer < Blim3) {
+      ardrone.stop();
       Btimer ++;
     }
     else {
       Btimer = 0;
       Bstep = false;
-      ardrone.stop();
     }
   }
   else if(Sstep == true) {
@@ -292,7 +301,7 @@ void draw() {
         Htimer = 0;
         if(targetId == 0){
           targetId = 1;
-          Sstep = true;//******************** add
+          Bstep = true;//******************** add
         }
         else if(targetId == 1){
           targetId = 3;
