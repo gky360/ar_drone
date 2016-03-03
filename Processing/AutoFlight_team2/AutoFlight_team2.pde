@@ -19,9 +19,9 @@ int lineCount = 20;
 
 int targetId = 3;
 int targetParam = 0;
-int targetParamMax = 4;
+int targetParamMax = 5;
 int targetParamCounter = 0;
-int targetParamCounterMax = 7;
+int targetParamCounterMax = 1;
 
 boolean autoMode = false;
 
@@ -73,17 +73,17 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float th_q = 3;
   float th_y = 50;
   float th_z = 50;
-  float th_w = 50;
+  float th_w = 100;
   float gain_q = 4;
   float gain_y = 0.4;
   float gain_z = 0.05;
   float gain_dz = 1;
   float gain_w = 0.05;
   float gain_dw = 0.5;
-  float input_q = min(abs(gain_q * (q - ref_q)), 35);
+  float input_q = min(abs(gain_q * (q - ref_q)), 40);
   float input_y = min(abs(gain_y * (y - ref_y)), 30);
   float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -15, 15);
-  float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -15, 15);
+  float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -30, 30);
   boolean isInRange = true;
 
   // display the distance to the marker
@@ -98,66 +98,75 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   pre_z = z;
   pre_w = w;
 
-  switch (targetParam) {
-    case 0:
-      // q
-      if ((q - ref_q) > th_q) {
-        text("spinLeft", width/128, height / lineCount * 3);
-        if (autoMode) ardrone.spinLeft((int)input_q);
-        isInRange = false;
-      } else if ((q - ref_q) < -th_q) {
-        text("spinRight", width/128, height / lineCount * 3);
-        if (autoMode) ardrone.spinRight((int)input_q);
-        isInRange = false;
-      }
-      break;
-    case 1:
-      // w
-      // if (abs(q) < th_q * 2 && abs(w - ref_w) >= th_w) {
-        if (input_w >= 0.0) {
-          text("goLeft", width/128, height / lineCount * 4);
-          if (autoMode) ardrone.goLeft((int)abs(input_w));
+  for (int i = 0; i < targetParamMax; ++i) {
+    switch (targetParam) {
+      case 0:
+        // q
+        if ((q - ref_q) > th_q) {
+          text("spinLeft", width/128, height / lineCount * 3);
+          if (autoMode) ardrone.spinLeft((int)input_q);
           isInRange = false;
-        } else {
-          text("goRight", width/128, height / lineCount * 4);
-          if (autoMode) ardrone.goRight((int)abs(input_w));
+        } else if ((q - ref_q) < -th_q) {
+          text("spinRight", width/128, height / lineCount * 3);
+          if (autoMode) ardrone.spinRight((int)input_q);
           isInRange = false;
         }
-      // }
-      break;
-    case 2:
-      // y
-      if ((y - ref_y) > th_y) {
-        text("down", width/128, height / lineCount * 5);
-        if (autoMode) ardrone.down((int)abs(input_y));
-        isInRange = false;
-      } else if ((y - ref_y) < -th_y) {
-        text("up", width/128, height / lineCount * 5);
-        if (autoMode) ardrone.up((int)abs(input_y));
-        isInRange = false;
-      }
-      break;
-    case 3:
-      // z
-      if (abs(z - ref_z) >= th_z) {
-        if (input_z >= 0.0) {
-          text("forward", width/128, height / lineCount * 6);
-          if (autoMode) ardrone.forward((int)abs(input_z));
-        } else {
-          text("backward", width/128, height / lineCount * 6);
-          if (autoMode) ardrone.backward((int)abs(input_z));
+        break;
+      case 1:
+        // w
+        // if (abs(q) < th_q * 2 && abs(w - ref_w) >= th_w) {
+          if (input_w >= 0.0) {
+            text("goLeft", width/128, height / lineCount * 4);
+            if (autoMode) ardrone.goLeft((int)abs(input_w));
+            isInRange = false;
+          } else {
+            text("goRight", width/128, height / lineCount * 4);
+            if (autoMode) ardrone.goRight((int)abs(input_w));
+            isInRange = false;
+          }
+        // }
+        break;
+      case 2:
+        // y
+        if ((y - ref_y) > th_y) {
+          text("down", width/128, height / lineCount * 5);
+          if (autoMode) ardrone.down((int)abs(input_y));
+          isInRange = false;
+        } else if ((y - ref_y) < -th_y) {
+          text("up", width/128, height / lineCount * 5);
+          if (autoMode) ardrone.up((int)abs(input_y));
+          isInRange = false;
         }
-        isInRange = false;
-      }
+        break;
+      case 3:
+      case 4:
+        // z
+        if (abs(z - ref_z) >= th_z) {
+          if (input_z >= 0.0) {
+            text("forward", width/128, height / lineCount * 6);
+            if (autoMode) ardrone.forward((int)abs(input_z));
+          } else {
+            text("backward", width/128, height / lineCount * 6);
+            if (autoMode) ardrone.backward((int)abs(input_z));
+          }
+          isInRange = false;
+        }
+        break;
+    }
+    if (!isInRange) {
       break;
+    }
+    targetParamCounter = 0;
+    targetParam = (targetParam + 1) % (targetParamMax);
   }
+
   if (isInRange) {
     text("nothing", width/128, height / lineCount * 1);
     // if (autoMode) ardrone.stop();
   }
 
   text("targetParam: " + targetParam, width/128, height / lineCount * 2);
-  if (isInRange || targetParamCounter >= targetParamCounterMax) {
+  if (targetParamCounter >= targetParamCounterMax) {
     targetParamCounter = 0;
     targetParam = (targetParam + 1) % (targetParamMax);
   } else {
