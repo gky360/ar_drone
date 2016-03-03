@@ -23,7 +23,14 @@ int targetParamCounterMax = 5;
 
 boolean autoMode = false;
 
-void omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
+int Htimer = 0;
+int start = 0;
+int Ftimer = 0;
+int tlim = 120;
+int GId = 0;
+boolean GG = false;
+
+boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 
   // not found
   if (!tracker.IsExistTarget(targetId)) {
@@ -31,7 +38,7 @@ void omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
     if (autoMode) {
       ardrone.spinRight(30);
     }
-    return;
+    return false;
   }
 
   // get marker position
@@ -49,7 +56,7 @@ void omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float th_w = 50;
   float gain_q = 4;
   float gain_y = 0.4;
-  float gain_z = 0.04;
+  float gain_z = 0.06;
   float gain_w = 0.008;
   float input_q = min(abs(gain_q * (q - ref_q)), 30);
   float input_y = min(abs(gain_y * (y - ref_y)), 50);
@@ -126,6 +133,8 @@ void omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   } else {
     targetParamCounter++;
   }
+
+  return (1000 <= d && d <= 2000);
 
 }
 
@@ -206,7 +215,11 @@ void draw() {
   fill(255, 255, 255);
   textSize(height/12);
 
-  text("Go to #" + targetId, 0, 200);
+  if(!GG){
+    text("Go to #" + targetId, 0, 200);
+  } else {
+    text("Go to #GOAL", 0,200);
+  }
 
   // print out AR.Drone information
   ardrone.printARDroneInfo();
@@ -215,7 +228,41 @@ void draw() {
   int battery = ardrone.getBatteryPercentage();
   text("battery:" + battery + " %", 0, height-10);
 
-  omottatoori(0.0, 0.0, 1500, 0.0);
+  //Ftimer
+  if(start > 0){
+    Ftimer = millis() - start;
+  }
+  if(Ftimer/1000 < tlim){
+    text("Htime:" + Htimer/60 +" Ftime:" + Ftimer/1000, width-400,100);
+  }
+  else if (Ftimer/1000 >= tlim){
+    ardrone.landing();
+    autoMode  = false;
+    text("GOAL...?", width-400,100);
+    return;
+  }
+
+  if (omottatoori(0.0, 0.0, 1500, 0.0)) {
+    if(Htimer < 10*60){
+      Htimer ++ ; //target timer
+    }
+    else if(Htimer >= 10*60){
+      Htimer = 0;
+      if(targetId == 0){
+        targetId = 1;
+      }
+      else if(targetId == 1){
+        targetId = 3;
+      }
+      else if(targetId == 3){
+        targetId = 2;
+      }
+      else if(targetId == 2){
+        targetId = GId;
+        GG = true;
+      }
+    }
+  }
 
 }
 
@@ -289,6 +336,7 @@ void keyPressed() {
     }
     else if (key == 'a') {
       autoMode = true;
+      start = millis();
     }
   }
 }
