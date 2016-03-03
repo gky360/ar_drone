@@ -12,7 +12,8 @@ boolean video720p = false;
 Tracker tracker;
 int numTargets = 4;
 int numMarkersTarget = 2;
-float targetWidth = 49.0f; // [cm]
+// float targetWidth = 49.0f; // [cm]
+float targetWidth = 25.7f;          
 String unit = "cm";
 int lineCount = 20;
 
@@ -25,7 +26,7 @@ int targetParamCounterMax = 7;
 boolean autoMode = false;
 
 int Htimer = 0;
-int HtimerUnit = 10;
+int HtimerUnit = 1000000;     
 int start = 0;
 int Ftimer = 0;
 int tlim1 = 120;
@@ -34,23 +35,28 @@ boolean GG = false;
 boolean Sstep = false;
 int Stimer = 0;
 int Slim = 50;
-boolean Bstep = false;
+boolean Bstep1 = false;
 int Btimer = 0;
-int Blim1 = 40;
-int Blim2 = 60 + Blim1;
-int Blim3 = 20 + Blim2;
+int B1lim1 = 40;
+int B1lim2 = 65 + B1lim1;
+int B1lim3 = 20 + B1lim2;
+boolean Bstep2 = false;
+int B2lim1 = 10;
+int B2lim2 = 50 + B2lim1;
+int B2lim3 = 20 + B2lim2;
 
 float pre_z = 0.0;
+float pre_w = 0.0;
 
 boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 
   // not found
   if (!tracker.IsExistTarget(targetId)) {
-    // text("backward (not tracking)", width/128, height / lineCount);
-    text("rotate", width/128, height / lineCount);
+    text("backward (not tracking)", width/128, height / lineCount);
+    // text("rotate", width/128, height / lineCount);
     if (autoMode) {
-      // ardrone.backward(10);
-      ardrone.spinRight(20);
+      ardrone.backward(1);
+      // ardrone.spinRight(20);
     }
     return false;
   }
@@ -61,10 +67,10 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float q = atan(P.x / P.z) * 180 / PI;
   float y = P.y *  10; //[cm -> mm]
   float z = P.z * -10; //[cm -> mm]
-  float w = z * tan(R.y - atan(q / z)); // radian
+  float w = sqrt(P.x * P.x * 100 + z * z) * tan(R.y + atan(P.x / P.z));
   text(nfp(q/1000,1,3) + ", " + nfp(y/1000,1,3) + ", " + nf(z/1000,2,3), width/128*50, height / lineCount);
 
-  float th_q = 4;
+  float th_q = 3;
   float th_y = 50;
   float th_z = 50;
   float th_w = 50;
@@ -72,83 +78,86 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float gain_y = 0.4;
   float gain_z = 0.05;
   float gain_dz = 1;
-  float gain_w = 0.15;
-  float input_q = min(abs(gain_q * (q - ref_q)), 40);
+  float gain_w = 0.05;
+  float gain_dw = 0.5;
+  float input_q = min(abs(gain_q * (q - ref_q)), 35);
   float input_y = min(abs(gain_y * (y - ref_y)), 30);
   float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -15, 15);
-  float input_w = constrain(gain_w * (w - ref_w), -15, 15);
-  boolean isHover = true;
+  float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -15, 15);
+  boolean isInRange = true;
 
   // display the distance to the marker
   float d = tracker.GetTargetDistance(targetId)*10; // sqrt(x * x + y * y + z * z);
-  text(nf(d / 1000, 1, 2) + ((1000 <= d && d <= 2000) ? " Happy!!" : ""), width / 128 * 50, height / lineCount * 2);
-  text("q: " + nf(y, 1, 2) + " input_y: " + nf(input_y, 1, 2), width / 128 * 50, height / lineCount * 3);
-  text("y: " + nf(y, 1, 2) + " input_y: " + nf(input_y, 1, 2), width / 128 * 50, height / lineCount * 4);
-  text("z: " + nf(z, 1, 2) + " input_z: " + nf(input_z, 1, 2) + " dz: " + nf(z - pre_z, 1, 2), width / 128 * 50, height / lineCount * 5);
-  text("w: " + nf(w, 1, 2) + " input_w: " + nf(input_w, 1, 2), width / 128 * 50, height / lineCount * 6);
+  text(nf(d / 1000, 3, 2) + ((1000 <= d && d <= 2000) ? " Happy!!" : ""), width / 128 * 50, height / lineCount * 2);
+  text("q: " + nf(q, 3, 2) + " input_q: " + nf(input_q, 3, 2), width / 128 * 50, height / lineCount * 3);
+  text("y: " + nf(y, 3, 2) + " input_y: " + nf(input_y, 3, 2), width / 128 * 50, height / lineCount * 4);
+  text("z: " + nf(z, 3, 2) + " input_z: " + nf(input_z, 3, 2) + " dz: " + nf(z - pre_z, 3, 2), width / 128 * 50, height / lineCount * 5);
+  text("w: " + nf(w, 3, 2) + " input_w: " + nf(input_w, 3, 2) + " dw: " + nf(w - pre_w, 3, 2), width / 128 * 50, height / lineCount * 6);
+  text("R.y: " + nf(R.y * 180/PI, 3, 2) + "atan: " + nf(atan(P.x / P.z) * 180/PI, 3, 2) + " R.y+atan: " + nf((R.y + atan(P.x / P.z)) * 180/PI, 3, 2), width / 128 * 50, height / lineCount * 7);
 
   pre_z = z;
+  pre_w = w;
 
   switch (targetParam) {
     case 0:
       // q
       if ((q - ref_q) > th_q) {
-        text("spinLeft", width/128, height / lineCount * 2);
+        text("spinLeft", width/128, height / lineCount * 3);
         if (autoMode) ardrone.spinLeft((int)input_q);
-        isHover = false;
+        isInRange = false;
       } else if ((q - ref_q) < -th_q) {
-        text("spinRight", width/128, height / lineCount * 2);
+        text("spinRight", width/128, height / lineCount * 3);
         if (autoMode) ardrone.spinRight((int)input_q);
-        isHover = false;
+        isInRange = false;
       }
       break;
     case 1:
       // w
-      if (abs(q) < th_q * 2 && abs(w - ref_w) >= th_w) {
+      // if (abs(q) < th_q * 2 && abs(w - ref_w) >= th_w) {
         if (input_w >= 0.0) {
-          text("goLeft", width/128, height / lineCount * 2);
+          text("goLeft", width/128, height / lineCount * 4);
           if (autoMode) ardrone.goLeft((int)abs(input_w));
-          isHover = false;
+          isInRange = false;
         } else {
-          text("goRight", width/128, height / lineCount * 2);
+          text("goRight", width/128, height / lineCount * 4);
           if (autoMode) ardrone.goRight((int)abs(input_w));
-          isHover = false;
+          isInRange = false;
         }
-      }
+      // }
       break;
     case 2:
       // y
       if ((y - ref_y) > th_y) {
-        text("down", width/128, height / lineCount * 2);
+        text("down", width/128, height / lineCount * 5);
         if (autoMode) ardrone.down((int)abs(input_y));
-        isHover = false;
+        isInRange = false;
       } else if ((y - ref_y) < -th_y) {
-        text("up", width/128, height / lineCount * 2);
+        text("up", width/128, height / lineCount * 5);
         if (autoMode) ardrone.up((int)abs(input_y));
-        isHover = false;
+        isInRange = false;
       }
       break;
     case 3:
       // z
       if (abs(z - ref_z) >= th_z) {
         if (input_z >= 0.0) {
-          text("forward", width/128, height / lineCount * 2);
+          text("forward", width/128, height / lineCount * 6);
           if (autoMode) ardrone.forward((int)abs(input_z));
         } else {
-          text("backward", width/128, height / lineCount * 2);
+          text("backward", width/128, height / lineCount * 6);
           if (autoMode) ardrone.backward((int)abs(input_z));
         }
-        isHover = false;
+        isInRange = false;
       }
       break;
   }
-  if (isHover) {
+  if (isInRange) {
     text("nothing", width/128, height / lineCount * 1);
     // if (autoMode) ardrone.stop();
   }
 
-  text("targetParam: " + targetParam, width/128, height / lineCount * 3);
-  if (isHover || targetParamCounter >= targetParamCounterMax) {
+  text("targetParam: " + targetParam, width/128, height / lineCount * 2);
+  if (isInRange || targetParamCounter >= targetParamCounterMax) {
     targetParamCounter = 0;
     targetParam = (targetParam + 1) % (targetParamMax);
   } else {
@@ -254,7 +263,7 @@ void draw() {
     Ftimer = millis() - start;
   }
   if(Ftimer/1000 < tlim1){
-    text("Htime:" + Htimer/HtimerUnit +" Ftime:" + Ftimer/1000, width-400,height / lineCount * 7);
+    text("Htime:" + Htimer/HtimerUnit +" Ftime:" + Ftimer/1000, width-400,height / lineCount * (lineCount - 1));
   }
   else if (Ftimer/1000 >= tlim1){
     ardrone.landing();
@@ -263,22 +272,40 @@ void draw() {
     return;
   }
 
-  if (Bstep == true) {
-    if (Btimer < Blim1) {
+  if (Bstep1 == true) {
+    if (Btimer < B1lim1) {
       ardrone.spinLeft(50);
       Btimer ++;
     }
-    else if (Btimer >= Blim1 && Btimer < Blim2) {
+    else if (Btimer >= B1lim1 && Btimer < B1lim2) {
       ardrone.backward((20));
       Btimer ++;
     }
-    else if (Btimer >= Blim2 && Btimer < Blim3) {
+    else if (Btimer >= B1lim2 && Btimer < B1lim3) {
       ardrone.stop();
       Btimer ++;
     }
     else {
       Btimer = 0;
-      Bstep = false;
+      Bstep1 = false;
+    }
+  }
+  if (Bstep2 == true) {
+    if (Btimer < B2lim1) {
+      ardrone.spinRight(50);
+      Btimer ++;
+    }
+    else if (Btimer >= B2lim1 && Btimer < B2lim2) {
+      ardrone.backward((20));
+      Btimer ++;
+    }
+    else if (Btimer >= B2lim2 && Btimer < B2lim3) {
+      ardrone.stop();
+      Btimer ++;
+    }
+    else {
+      Btimer = 0;
+      Bstep2 = false;
     }
   }
   else if(Sstep == true) {
@@ -301,19 +328,19 @@ void draw() {
         Htimer = 0;
         if(targetId == 0){
           targetId = 1;
-          Bstep = true;//******************** add
+          Bstep1 = true;
         }
         else if(targetId == 1){
           targetId = 3;
-          Bstep = true;//******************** add
+          Bstep2 = true;//******************** add
         }
         else if(targetId == 3){
           targetId = 2;
-          Bstep = true;//******************** add
+          Bstep1 = true;//******************** add
         }
         else if(targetId == 2){
           targetId = GId;
-          Bstep = true;//******************** add
+          Bstep2 = true;//******************** add
           GG = true;
         }
       }
