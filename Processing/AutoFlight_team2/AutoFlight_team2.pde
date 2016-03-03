@@ -17,18 +17,21 @@ String unit = "cm";
 
 int targetId = 1;
 int targetParam = 0;
-int targetParamMax = 4;
+int targetParamMax = 5;
 int targetParamCounter = 0;
 int targetParamCounterMax = 5;
 
 boolean autoMode = false;
 
 int Htimer = 0;
+int HtimerUnit = 100000;
 int start = 0;
 int Ftimer = 0;
 int tlim = 120;
 int GId = 0;
 boolean GG = false;
+
+float pre_z = 0.0;
 
 boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 
@@ -47,7 +50,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float q = atan(P.x / P.z) * 180 / PI;
   float y = P.y *  10; //[cm -> mm]
   float z = P.z * -10; //[cm -> mm]
-  float w = z * (R.y - atan(q / z)); // radian
+  float w = z * tan(R.y - atan(q / z)); // radian
   text(nfp(q/1000,1,3) + ", " + nfp(y/1000,1,3) + ", " + nf(z/1000,2,3), width/128*50, height/12);
 
   float th_q = 3;
@@ -56,18 +59,24 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float th_w = 50;
   float gain_q = 4;
   float gain_y = 0.4;
-  float gain_z = 0.06;
+  float gain_z = 0.05;
+  float gain_dz = 1;
   float gain_w = 0.008;
-  float input_q = min(abs(gain_q * (q - ref_q)), 30);
+  float input_q = min(abs(gain_q * (q - ref_q)), 50);
   float input_y = min(abs(gain_y * (y - ref_y)), 50);
-  float input_z = min(abs(gain_z * (z - ref_z)), 30);
-  float input_w = min(abs(gain_w * (w - ref_w)), 10);
+  float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -30, 30);
+  float input_w = constrain(gain_w * (w - ref_w), -15, 15);
   boolean isHover = true;
 
   // display the distance to the marker
   float d = tracker.GetTargetDistance(targetId)*10; // sqrt(x * x + y * y + z * z);
   text(nf(d / 1000, 1, 3) + ((1000 <= d && d <= 2000) ? " Happy!!" : ""), width / 128 * 50, height/12 * 2);
-  text("input_q: " + nf(input_q, 1, 3) + ", theta: " + nf((R.y - atan(q / z)) * 180 / PI, 1, 3), width / 128 * 50, height/12 * 3);
+  text("y: " + nf(y, 1, 3) + " input_y: " + nf(input_y, 1, 3), width / 128 * 50, height/12 * 3);
+  text("z: " + nf(z, 1, 3) + " input_z: " + nf(input_z, 1, 3), width / 128 * 50, height/12 * 4);
+  text("z - pre_z: " + nf(z - pre_z, 1, 3), width / 128 * 50, height/12 * 5);
+  text("input_w: " + nf(input_w, 1, 3), width / 128 * 50, height/12 * 6);
+
+  pre_z = z;
 
   switch (targetParam) {
     case 0:
@@ -84,14 +93,14 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
       break;
     case 1:
       // w
-      if (abs(q) < th_q * 2) {
-        if ((w - ref_w) > th_w) {
+      if (abs(q) < th_q * 2 && abs(w - ref_w) >= th_w) {
+        if (input_w >= 0.0) {
           text("goLeft", width/128, height/12 * 2);
-          if (autoMode) ardrone.goLeft((int)input_w);
+          if (autoMode) ardrone.goLeft((int)abs(input_w));
           isHover = false;
-        } else if ((w - ref_w) < -th_w) {
+        } else {
           text("goRight", width/128, height/12 * 2);
-          if (autoMode) ardrone.goRight((int)input_w);
+          if (autoMode) ardrone.goRight((int)abs(input_w));
           isHover = false;
         }
       }
@@ -109,14 +118,16 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
       }
       break;
     case 3:
+    case 4:
       // z
-      if ((z - ref_z) > th_z) {
-        text("forward", width/128, height/12 * 2);
-        if (autoMode) ardrone.forward((int)input_z);
-        isHover = false;
-      } else if ((z - ref_z) < -th_z) {
-        text("backward", width/128, height/12 * 2);
-        if (autoMode) ardrone.backward((int)input_z);
+      if (abs(z - ref_z) >= th_z) {
+        if (input_z >= 0.0) {
+          text("forward", width/128, height/12 * 2);
+          if (autoMode) ardrone.forward((int)abs(input_z));
+        } else {
+          text("backward", width/128, height/12 * 2);
+          if (autoMode) ardrone.backward((int)abs(input_z));
+        }
         isHover = false;
       }
       break;
@@ -233,7 +244,7 @@ void draw() {
     Ftimer = millis() - start;
   }
   if(Ftimer/1000 < tlim){
-    text("Htime:" + Htimer/60 +" Ftime:" + Ftimer/1000, width-400,100);
+    text("Htime:" + Htimer/HtimerUnit +" Ftime:" + Ftimer/1000, width-400,height/12 * 7);
   }
   else if (Ftimer/1000 >= tlim){
     ardrone.landing();
@@ -243,10 +254,10 @@ void draw() {
   }
 
   if (omottatoori(0.0, 0.0, 1500, 0.0)) {
-    if(Htimer < 10*60){
+    if(Htimer < 10*HtimerUnit){
       Htimer ++ ; //target timer
     }
-    else if(Htimer >= 10*60){
+    else if(Htimer >= 10*HtimerUnit){
       Htimer = 0;
       if(targetId == 0){
         targetId = 1;
