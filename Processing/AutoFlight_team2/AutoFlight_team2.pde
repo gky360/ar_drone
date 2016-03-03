@@ -15,21 +15,27 @@ int numMarkersTarget = 2;
 float targetWidth = 49.0f; // [cm]
 String unit = "cm";
 
-int targetId = 1;
+int targetId = 3;
 int targetParam = 0;
-int targetParamMax = 5;
+int targetParamMax = 4;
 int targetParamCounter = 0;
-int targetParamCounterMax = 5;
+int targetParamCounterMax = 7;
 
 boolean autoMode = false;
 
 int Htimer = 0;
-int HtimerUnit = 100000;
+int HtimerUnit = 10;
 int start = 0;
 int Ftimer = 0;
-int tlim = 120;
+int tlim1 = 120;
 int GId = 0;
 boolean GG = false;
+boolean Sstep = false;
+int Stimer = 0;
+int Slim = 4 * HtimerUnit;
+boolean Bstep = false;
+int Btimer = 0;
+int Blim = 3 * HtimerUnit;
 
 float pre_z = 0.0;
 
@@ -61,10 +67,10 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float gain_y = 0.4;
   float gain_z = 0.05;
   float gain_dz = 1;
-  float gain_w = 0.008;
-  float input_q = min(abs(gain_q * (q - ref_q)), 50);
-  float input_y = min(abs(gain_y * (y - ref_y)), 50);
-  float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -30, 30);
+  float gain_w = 0.15;
+  float input_q = min(abs(gain_q * (q - ref_q)), 30);
+  float input_y = min(abs(gain_y * (y - ref_y)), 30);
+  float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -15, 15);
   float input_w = constrain(gain_w * (w - ref_w), -15, 15);
   boolean isHover = true;
 
@@ -109,16 +115,15 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
       // y
       if ((y - ref_y) > th_y) {
         text("down", width/128, height/12 * 2);
-        if (autoMode) ardrone.down((int)input_y);
+        if (autoMode) ardrone.down((int)abs(input_y));
         isHover = false;
       } else if ((y - ref_y) < -th_y) {
         text("up", width/128, height/12 * 2);
-        if (autoMode) ardrone.up((int)input_y);
+        if (autoMode) ardrone.up((int)abs(input_y));
         isHover = false;
       }
       break;
     case 3:
-    case 4:
       // z
       if (abs(z - ref_z) >= th_z) {
         if (input_z >= 0.0) {
@@ -243,34 +248,62 @@ void draw() {
   if(start > 0){
     Ftimer = millis() - start;
   }
-  if(Ftimer/1000 < tlim){
+  if(Ftimer/1000 < tlim1){
     text("Htime:" + Htimer/HtimerUnit +" Ftime:" + Ftimer/1000, width-400,height/12 * 7);
   }
-  else if (Ftimer/1000 >= tlim){
+  else if (Ftimer/1000 >= tlim1){
     ardrone.landing();
     autoMode  = false;
     text("GOAL...?", width-400,100);
     return;
   }
 
-  if (omottatoori(0.0, 0.0, 1500, 0.0)) {
-    if(Htimer < 10*HtimerUnit){
-      Htimer ++ ; //target timer
+  if (Bstep == true) {
+    if (Btimer < Blim) {
+      ardrone.backward((20));
+      Btimer ++;
     }
-    else if(Htimer >= 10*HtimerUnit){
-      Htimer = 0;
-      if(targetId == 0){
-        targetId = 1;
+    else {
+      Btimer = 0;
+      Bstep = false;
+      ardrone.stop();
+    }
+  }
+  else if(Sstep == true) {
+    if (Stimer < Slim) {
+      ardrone.goRight((20));
+      Stimer ++;
+    }
+    else {
+      Stimer = 0;
+      Sstep = false;
+      ardrone.stop();
+    }
+  }
+  else{
+    if (omottatoori(0.0, 0.0, 1500, 0.0)) {
+      if(Htimer < 10*HtimerUnit){
+        Htimer ++ ; //target timer
       }
-      else if(targetId == 1){
-        targetId = 3;
-      }
-      else if(targetId == 3){
-        targetId = 2;
-      }
-      else if(targetId == 2){
-        targetId = GId;
-        GG = true;
+      else if(Htimer >= 10*HtimerUnit){
+        Htimer = 0;
+        if(targetId == 0){
+          targetId = 1;
+          Sstep = true;//******************** add
+        }
+        else if(targetId == 1){
+          targetId = 3;
+          Bstep = true;//******************** add
+        }
+        else if(targetId == 3){
+          targetId = 2;
+          Bstep = true;//******************** add
+        }
+        else if(targetId == 2){
+          targetId = GId;
+          Bstep = true;//******************** add
+          GG = true;
+        }
       }
     }
   }
