@@ -27,7 +27,7 @@ int targetParamCounterMax = 1;
 boolean autoMode = false;
 
 int Htimer = 0;
-int HtimerUnit = 3000000;
+int HtimerUnit = 3000000;     
 int start = 0;
 int Ftimer = 0;
 int tlim1 = 120;
@@ -38,6 +38,7 @@ int Stimer = 0;
 int Slim = 50;
 
 int Btimer = 0;
+int Wtimer = 0;
 boolean hassha = false;
 int spinT = 0;
 int walkT = 0;
@@ -47,7 +48,7 @@ int B1lim1 = 40;
 int B1lim2 = 65 + B1lim1;
 int B1lim3 = 20 + B1lim2;
 int B2lim1 = 10;
-int B2lim2 = 50 + B2lim1;
+int B2lim2 = 70 + B2lim1;
 int B2lim3 = 20 + B2lim2;
 int B3lim1 = 25;
 int B3lim2 = 70 + B3lim1;
@@ -120,7 +121,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float input_q = min(abs(gain_q * (q - ref_q)), 40);
   float input_y = min(abs(gain_y * (y - ref_y)), 50);
   float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -20, 20);
-  float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -30, 30);
+  float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -25, 25);
   boolean isInRange = true;
 
   // display the distance to the marker
@@ -356,7 +357,7 @@ void draw() {
     return;
   }
 
-  if (mikiri_hassha(hassha, spinT, walkT, hoverT, direc)) {
+  if (hassha && mikiri_hassha(hassha, spinT, walkT, hoverT, direc)) {
     text("mikiri now",width/128, height/12);
   }
   else {
@@ -368,33 +369,53 @@ void draw() {
         Htimer = 0;
         hassha = true;
         if(targetId == 0){
-          targetId = 1;
           spinT = B1lim1;
           walkT  = B1lim2;
           hoverT = B1lim3;
           direc  = false;
+          if (Wtimer < hoverT) Wtimer ++;
+          else{
+            Wtimer = 0;
+            targetId = 1;
+            hassha = false;
+          }
         }
         else if(targetId == 1){
-          targetId = 3;
-          spinT = B2lim1;
-          walkT  = B2lim2;
-          hoverT = B2lim3;
-          direc  = true;
-        }
-        else if(targetId == 3){
-          targetId = 2;
           spinT = B1lim1;
           walkT  = B1lim2;
           hoverT = B1lim3;
           direc  = false;
+          if (Wtimer < hoverT) Wtimer ++;
+          else{
+            Wtimer = 0;
+            targetId = 3;
+            hassha = false;
+          }
+        }
+        else if(targetId == 3){
+          spinT = B1lim1;
+          walkT  = B1lim2;
+          hoverT = B1lim3;
+          direc  = false;
+          if (Wtimer < hoverT) Wtimer ++;
+          else{
+            Wtimer = 0;
+            targetId = 2;
+            hassha = false;
+          }
         }
         else if(targetId == 2){
-          targetId = GId;
-          GG = true;
           spinT = B3lim1;
           walkT  = B3lim2;
           hoverT = B3lim3;
           direc  = true;
+          if (Wtimer < hoverT) Wtimer ++;
+          else{
+            Wtimer = 0;
+            targetId = GId;
+            hassha = false;
+            GG = true;
+          }
         }
       }
     }
