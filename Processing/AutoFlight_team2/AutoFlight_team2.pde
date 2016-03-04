@@ -48,6 +48,10 @@ int B2lim3 = 20 + B2lim2;
 float pre_z = 0.0;
 float pre_w = 0.0;
 
+String ftos(float val, int left_digits, int right_digits) {
+  return ((val < 0.0) ? "-" : "  ") + nf(abs(val), left_digits, right_digits);
+}
+
 boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 
   // not found
@@ -88,12 +92,13 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 
   // display the distance to the marker
   float d = tracker.GetTargetDistance(targetId)*10; // sqrt(x * x + y * y + z * z);
-  text(nf(d / 1000, 3, 2) + ((1000 <= d && d <= 2000) ? " Happy!!" : ""), width / 128 * 50, height / lineCount * 2);
-  text("q: " + nf(q, 3, 2) + " input_q: " + nf(input_q, 3, 2), width / 128 * 50, height / lineCount * 3);
-  text("y: " + nf(y, 3, 2) + " input_y: " + nf(input_y, 3, 2), width / 128 * 50, height / lineCount * 4);
-  text("z: " + nf(z, 3, 2) + " input_z: " + nf(input_z, 3, 2) + " dz: " + nf(z - pre_z, 3, 2), width / 128 * 50, height / lineCount * 5);
-  text("w: " + nf(w, 3, 2) + " input_w: " + nf(input_w, 3, 2) + " dw: " + nf(w - pre_w, 3, 2), width / 128 * 50, height / lineCount * 6);
-  text("R.y: " + nf(R.y * 180/PI, 3, 2) + "atan: " + nf(atan(P.x / P.z) * 180/PI, 3, 2) + " R.y+atan: " + nf((R.y + atan(P.x / P.z)) * 180/PI, 3, 2), width / 128 * 50, height / lineCount * 7);
+  text(ftos(d, 4, 2) + ((1000 <= d && d <= 2000) ? " Happy!!" : ""), width / 128 * 50, height / lineCount * 2);
+  text("q: " + ftos(q, 3, 2) + " input_q: " + ftos(input_q, 2, 2), width / 128 * 50, height / lineCount * 3);
+  text("y: " + ftos(y, 3, 2) + " input_y: " + ftos(input_y, 2, 2), width / 128 * 50, height / lineCount * 4);
+  text("z: " + ftos(z, 3, 2) + " input_z: " + ftos(input_z, 2, 2) + " dz: " + ftos(z - pre_z, 3, 2), width / 128 * 50, height / lineCount * 5);
+  text("w: " + ftos(w, 3, 2) + " input_w: " + ftos(input_w, 2, 2) + " dw: " + ftos(w - pre_w, 3, 2), width / 128 * 50, height / lineCount * 6);
+  text("R.y: " + ftos(R.y * 180/PI, 3, 2) + " atan: " + ftos(atan(P.x / P.z) * 180/PI, 3, 2) + " R.y+atan: " + ftos((R.y + atan(P.x / P.z)) * 180/PI, 3, 2), width / 128 * 50, height / lineCount * 7);
+  text("sqrt_x^2+z^2: " + ftos(sqrt(P.x * P.x * 100 + z * z), 3, 2), width / 128 * 50, height / lineCount * 8);
 
   pre_z = z;
   pre_w = w;
@@ -115,6 +120,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
       case 1:
         // w
         // if (abs(q) < th_q * 2 && abs(w - ref_w) >= th_w) {
+        if (abs(w - ref_w) >= th_w) {
           if (input_w >= 0.0) {
             text("goLeft", width/128, height / lineCount * 4);
             if (autoMode) ardrone.goLeft((int)abs(input_w));
@@ -124,6 +130,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
             if (autoMode) ardrone.goRight((int)abs(input_w));
             isInRange = false;
           }
+        }
         // }
         break;
       case 2:
