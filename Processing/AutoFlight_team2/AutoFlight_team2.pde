@@ -27,7 +27,7 @@ int targetParamCounterMax = 1;
 boolean autoMode = false;
 
 int Htimer = 0;
-int HtimerUnit = 3000000;     
+int HtimerUnit = 30;
 int start = 0;
 int Ftimer = 0;
 int tlim1 = 120;
@@ -44,14 +44,14 @@ int spinT = 0;
 int walkT = 0;
 int hoverT = 0;
 boolean direc = false;
-int B1lim1 = 40;
-int B1lim2 = 65 + B1lim1;
+int B1lim1 = 75;
+int B1lim2 = 80 + B1lim1;
 int B1lim3 = 20 + B1lim2;
 int B2lim1 = 10;
-int B2lim2 = 70 + B2lim1;
-int B2lim3 = 20 + B2lim2;
-int B3lim1 = 25;
-int B3lim2 = 70 + B3lim1;
+int B2lim2 = 60 + B2lim1;
+int B2lim3 = 30 + B2lim2;
+int B3lim1 = 20;
+int B3lim2 = 60 + B3lim1;
 int B3lim3 = 20 + B3lim2;
 
 float pre_z = 0.0;
@@ -103,7 +103,24 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
       }
     } else {
       text("searchBackward", width/128, height / lineCount);
-      ardrone.backward(5);
+      if (autoMode) {
+        ardrone.backward(5);
+      }
+    }
+    float ReF_altitude = 1350;
+    float GAIN_altitude = 0.4;
+    float th_altitude = 150;
+    float altitude_rotate = ardrone.getAltitude();
+    float P_INPUT_rotate = min(abs(GAIN_altitude * (ReF_altitude -altitude_rotate)), 30);
+    if(altitude_rotate <ReF_altitude -th_altitude){
+      if(autoMode){
+        ardrone.up((int)P_INPUT_rotate);
+      }
+    }
+    else if(altitude_rotate >ReF_altitude +th_altitude){
+      if(autoMode){
+        ardrone.down((int)P_INPUT_rotate);
+      }
     }
     return false;
   }
@@ -221,6 +238,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 }
 
 boolean mikiri_hassha (boolean mikiri, int spin_time, int walk_time, int hover_time, boolean direction) { //(direction = true) => spinRight
+  text("Btimer: " + ftos(Btimer, 2, 2) + " Wtimer: " + ftos(Wtimer, 2, 2), width / 128 * 50, height / lineCount * 18);
   if (mikiri) {
     if (Btimer < spin_time) {
       if (direction){
@@ -357,7 +375,59 @@ void draw() {
     return;
   }
 
-  if (hassha && mikiri_hassha(hassha, spinT, walkT, hoverT, direc)) {
+  if(hassha){
+    if(targetId == 0){
+      spinT = B1lim1;
+      walkT  = B1lim2;
+      hoverT = B1lim3;
+      direc  = false;
+      if (Wtimer < hoverT) Wtimer ++;
+      else{
+        Wtimer = 0;
+        targetId = 1;
+        hassha = false;
+      }
+    }
+    else if(targetId == 1){
+      spinT = B2lim1;
+      walkT  = B2lim2;
+      hoverT = B2lim3;
+      direc  = true;
+      if (Wtimer < hoverT) Wtimer ++;
+      else{
+        Wtimer = 0;
+        targetId = 3;
+        hassha = false;
+      }
+    }
+    else if(targetId == 3){
+      spinT = B1lim1;
+      walkT  = B1lim2;
+      hoverT = B1lim3;
+      direc  = false;
+      if (Wtimer < hoverT) Wtimer ++;
+      else{
+        Wtimer = 0;
+        targetId = 2;
+        hassha = false;
+      }
+    }
+    else if(targetId == 2){
+      spinT = B3lim1;
+      walkT  = B3lim2;
+      hoverT = B3lim3;
+      direc  = true;
+      if (Wtimer < hoverT) Wtimer ++;
+      else{
+        Wtimer = 0;
+        targetId = GId;
+        hassha = false;
+        GG = true;
+      }
+    }
+  }
+
+  if (mikiri_hassha(hassha, spinT, walkT, hoverT, direc)) {
     text("mikiri now",width/128, height/12);
   }
   else {
@@ -368,59 +438,9 @@ void draw() {
       else if(Htimer >= 10*HtimerUnit){
         Htimer = 0;
         hassha = true;
-        if(targetId == 0){
-          spinT = B1lim1;
-          walkT  = B1lim2;
-          hoverT = B1lim3;
-          direc  = false;
-          if (Wtimer < hoverT) Wtimer ++;
-          else{
-            Wtimer = 0;
-            targetId = 1;
-            hassha = false;
-          }
-        }
-        else if(targetId == 1){
-          spinT = B1lim1;
-          walkT  = B1lim2;
-          hoverT = B1lim3;
-          direc  = false;
-          if (Wtimer < hoverT) Wtimer ++;
-          else{
-            Wtimer = 0;
-            targetId = 3;
-            hassha = false;
-          }
-        }
-        else if(targetId == 3){
-          spinT = B1lim1;
-          walkT  = B1lim2;
-          hoverT = B1lim3;
-          direc  = false;
-          if (Wtimer < hoverT) Wtimer ++;
-          else{
-            Wtimer = 0;
-            targetId = 2;
-            hassha = false;
-          }
-        }
-        else if(targetId == 2){
-          spinT = B3lim1;
-          walkT  = B3lim2;
-          hoverT = B3lim3;
-          direc  = true;
-          if (Wtimer < hoverT) Wtimer ++;
-          else{
-            Wtimer = 0;
-            targetId = GId;
-            hassha = false;
-            GG = true;
-          }
-        }
       }
     }
   }
-
 }
 
 // controlling AR.Drone through key input
