@@ -9,6 +9,8 @@ ARDroneForP5 ardrone;
 
 boolean video720p = false;
 
+boolean isFinal = true;
+
 Tracker tracker;
 int numTargets = 4;
 int numMarkersTarget = 2;
@@ -17,7 +19,11 @@ float targetWidth = 49.0f; // [cm]
 String unit = "cm";
 int lineCount = 20;
 
-int targetId = 0;
+int NONE = numTargets;
+boolean targetIdCandidates[] = { false, false, false, false, false };
+int statusNum = 0;
+boolean visitedSa = false;
+int targetId = NONE;
 int lastTargetId = -1;
 int targetParam = 0;
 int targetParamMax = 7;
@@ -62,7 +68,7 @@ String ftos(float val, int left_digits, int right_digits) {
   return ((val < 0.0) ? "-" : "  ") + nf(abs(val), left_digits, right_digits);
 }
 
-boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
+boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean isCenter) {
 
   if (targetId != lastTargetId) {
     // target has changed
@@ -83,12 +89,18 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float gain_w = 0.05;
   float gain_dw = 1.2;
 
-  // not found
-  if (!tracker.IsExistTarget(targetId)) {
-    // text("backward (not tracking)", width/128, height / lineCount);
-    // if (autoMode) {
-    //   ardrone.backward(1);
-    // }
+  if (!targetIdCandidates[targetId]) {
+    targetId = NONE;
+  }
+  if (targetId == NONE) {
+    for (int i = 0; i < numTargets; i++) {
+      if (targetIdCandidates[i] && tracker.IsExistTarget(i)) {
+        targetId = i;
+        break;
+      }
+    }
+  }
+  if (targetId == NONE || !tracker.IsExistTarget(targetId)) {
     if (abs(last_q - ref_q) >= th_q * 2) {
       if (input_rotate >= 0.0) {
         text("searchLeft", width/128, height / lineCount);
@@ -107,9 +119,9 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
         ardrone.backward(5);
       }
     }
-    float ReF_altitude = 1350;
+    float ReF_altitude = 1300;
     float GAIN_altitude = 0.4;
-    float th_altitude = 150;
+    float th_altitude = 200;
     float altitude_rotate = ardrone.getAltitude();
     float P_INPUT_rotate = min(abs(GAIN_altitude * (ReF_altitude -altitude_rotate)), 30);
     if(altitude_rotate <ReF_altitude -th_altitude){
@@ -143,7 +155,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 
   // display the distance to the marker
   float d = tracker.GetTargetDistance(targetId)*10; // sqrt(x * x + y * y + z * z);
-  text(ftos(d, 4, 2) + ((1000 <= d && d <= 2000) ? " Happy!!" : ""), width / 128 * 50, height / lineCount * 2);
+  text(ftos(d, 4, 2) + ((1000 <= d && d <= 2000 && !isCenter) ? " Happy!!" : ""), width / 128 * 50, height / lineCount * 2);
   text("q: " + ftos(q, 3, 2) + " input_q: " + ftos(input_q, 2, 2), width / 128 * 50, height / lineCount * 3);
   text("y: " + ftos(y, 3, 2) + " input_y: " + ftos(input_y, 2, 2), width / 128 * 50, height / lineCount * 4);
   text("z: " + ftos(z, 3, 2) + " input_z: " + ftos(input_z, 2, 2) + " dz: " + ftos(z - pre_z, 3, 2), width / 128 * 50, height / lineCount * 5);
@@ -233,6 +245,9 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
     targetParamCounter++;
   }
 
+  if (isCenter) {
+    return (abs(z - ref_z) < th_z);
+  }
   return (1000 <= d && d <= 2000);
 
 }
@@ -262,7 +277,6 @@ boolean mikiri_hassha (boolean mikiri, int spin_time, int walk_time, int hover_t
       return true;
     }
     else if (Btimer >= hover_time) {
-      Btimer = 0;
       mikiri = false;
       return false;
     }
@@ -291,6 +305,126 @@ void setup() {
   ardrone.connectVideo();
   // start to control AR.Drone and get sensor and video data of it
   ardrone.start();
+}
+
+void kesshou() {
+
+  float ref_q = 0.0;
+  float ref_y = 0.0;
+  float ref_z = 0.0;
+  float ref_w = 0.0;
+
+  switch (statusNum) {
+    case 0:
+      targetIdCandidates[0] = true;
+      targetIdCandidates[1] = false;
+      targetIdCandidates[2] = false;
+      targetIdCandidates[3] = false;
+      break;
+    case 1:
+      targetIdCandidates[0] = true;
+      targetIdCandidates[1] = false;
+      targetIdCandidates[2] = false;
+      targetIdCandidates[3] = false;
+      ref_q = 0.0;
+      ref_y = 0.0;
+      ref_z = 1500.0;
+      ref_w = 0.0;
+      break;
+    case 2:
+      targetIdCandidates[0] = true;
+      targetIdCandidates[1] = false;
+      targetIdCandidates[2] = false;
+      targetIdCandidates[3] = false;
+      ref_q = 0.0;
+      ref_y = 0.0;
+      ref_z = 4000.0;
+      ref_w = 2000.0;
+      break;
+    case 3:
+      targetIdCandidates[0] = false;
+      targetIdCandidates[1] = true;
+      targetIdCandidates[2] = false;
+      targetIdCandidates[3] = false;
+      ref_q = 0.0;
+      ref_y = 0.0;
+      ref_z = 1500.0;
+      ref_w = 0.0;
+      break;
+    case 4:
+      targetIdCandidates[0] = false;
+      targetIdCandidates[1] = true;
+      targetIdCandidates[2] = false;
+      targetIdCandidates[3] = false;
+      ref_q = 0.0;
+      ref_y = 0.0;
+      ref_z = 4000.0;
+      ref_w = -2000.0;
+      break;
+    case 5:
+      targetIdCandidates[0] = false;
+      targetIdCandidates[1] = false;
+      targetIdCandidates[2] = true;
+      targetIdCandidates[3] = true;
+      ref_q = 0.0;
+      ref_y = 0.0;
+      ref_z = 1500.0;
+      ref_w = 0.0;
+      if (targetId == 2) {
+        visitedSa = true;
+      } else {
+        visitedSa = false;
+      }
+      break;
+    case 6:
+      targetIdCandidates[0] = true;
+      targetIdCandidates[1] = true;
+      targetIdCandidates[2] = false;
+      targetIdCandidates[3] = false;
+      ref_q = 0.0;
+      ref_y = 0.0;
+      ref_z = 4000.0;
+      if (targetId == 0) {
+        ref_w = 2000.0;
+      } else if (targetId == 1) {
+        ref_w = -2000.0;
+      } else {
+        ref_w = 0.0;
+      }
+      break;
+    case 7:
+      targetIdCandidates[0] = true;
+      targetIdCandidates[1] = true;
+      targetIdCandidates[2] = !visitedSa;
+      targetIdCandidates[3] = visitedSa;
+      ref_q = 0.0;
+      ref_y = 0.0;
+      ref_z = 1500.0;
+      ref_w = 0.0;
+      break;
+    case 8:
+      targetIdCandidates[0] = true;
+      targetIdCandidates[1] = true;
+      targetIdCandidates[2] = false;
+      targetIdCandidates[3] = false;
+      ref_q = 0.0;
+      ref_y = -800.0;
+      ref_z = 4000.0;
+      if (targetId == 0) {
+        ref_w = 2000.0;
+      } else if (targetId == 1) {
+        ref_w = -2000.0;
+      } else {
+        ref_w = 0.0;
+      }
+      break;
+    case 9:
+      // landing!!!!!    
+      break;
+  }
+
+
+
 }
 
 void draw() {
@@ -349,9 +483,19 @@ void draw() {
   textSize(height / lineCount);
 
   if(!GG){
-    text("Go to #" + targetId, 0, 200);
+    if (targetId == NONE) {
+      String str = "Searching";
+      for (int i = 0; i < numTargets; i++) {
+        if (targetIdCandidates[i]) {
+          str += " #" + i;
+        }
+      }
+      text(str, 0, 200);
+    } else {
+      text("[@" + statusNum + "], Go to #" + targetId, 0, 200);
+    }
   } else {
-    text("Go to #GOAL", 0,200);
+    text("[@" + statusNum + "], Go to #GOAL", 0,200);
   }
 
   // print out AR.Drone information
@@ -375,15 +519,19 @@ void draw() {
     return;
   }
 
+  if (isFinal) {
+    kesshou();
+    return;
+  }
+
   if(hassha){
     if(targetId == 0){
       spinT = B1lim1;
       walkT  = B1lim2;
       hoverT = B1lim3;
       direc  = false;
-      if (Wtimer < hoverT) Wtimer ++;
-      else{
-        Wtimer = 0;
+      if (Btimer >= hoverT){
+        Btimer = 0;
         targetId = 1;
         hassha = false;
       }
@@ -393,9 +541,8 @@ void draw() {
       walkT  = B2lim2;
       hoverT = B2lim3;
       direc  = true;
-      if (Wtimer < hoverT) Wtimer ++;
-      else{
-        Wtimer = 0;
+      if (Btimer >= hoverT) {
+        Btimer = 0;
         targetId = 3;
         hassha = false;
       }
@@ -405,9 +552,8 @@ void draw() {
       walkT  = B1lim2;
       hoverT = B1lim3;
       direc  = false;
-      if (Wtimer < hoverT) Wtimer ++;
-      else{
-        Wtimer = 0;
+      if (Btimer >= hoverT) {
+        Btimer = 0;
         targetId = 2;
         hassha = false;
       }
@@ -417,9 +563,8 @@ void draw() {
       walkT  = B3lim2;
       hoverT = B3lim3;
       direc  = true;
-      if (Wtimer < hoverT) Wtimer ++;
-      else{
-        Wtimer = 0;
+      if (Btimer >= hoverT) {
+        Btimer = 0;
         targetId = GId;
         hassha = false;
         GG = true;
@@ -431,7 +576,7 @@ void draw() {
     text("mikiri now",width/128, height/12);
   }
   else {
-    if (omottatoori(0.0, 0.0, 1500, 0.0)) {
+    if (omottatoori(0.0, 0.0, 1500, 0.0, false)) {
       if(Htimer < 10*HtimerUnit){
         Htimer ++ ; //target timer
       }
