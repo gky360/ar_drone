@@ -19,7 +19,7 @@ int lineCount = 20;
 
 int targetId = 3;
 int targetParam = 0;
-int targetParamMax = 5;
+int targetParamMax = 7;
 int targetParamCounter = 0;
 int targetParamCounterMax = 1;
 
@@ -71,7 +71,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float q = atan(P.x / P.z) * 180 / PI;
   float y = P.y *  10; //[cm -> mm]
   float z = P.z * -10; //[cm -> mm]
-  float w = sqrt(P.x * P.x * 100 + z * z) * tan(R.y + atan(P.x / P.z));
+  float w = sqrt(P.x * P.x * 100 + z * z)/*z*/ * tan(R.y + atan(P.x / P.z));
   text(nfp(q/1000,1,3) + ", " + nfp(y/1000,1,3) + ", " + nf(z/1000,2,3), width/128*50, height / lineCount);
 
   float th_q = 3;
@@ -80,14 +80,14 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float th_w = 100;
   float gain_q = 4;
   float gain_y = 0.4;
-  float gain_z = 0.05;
-  float gain_dz = 1;
+  float gain_z = 0.04;
+  float gain_dz = 1.2;
   float gain_w = 0.05;
-  float gain_dw = 0.5;
+  float gain_dw = 1.2;
   float input_q = min(abs(gain_q * (q - ref_q)), 40);
-  float input_y = min(abs(gain_y * (y - ref_y)), 30);
+  float input_y = min(abs(gain_y * (y - ref_y)), 50);
   float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -15, 15);
-  float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -30, 30);
+  float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -40, 40);
   boolean isInRange = true;
 
   // display the distance to the marker
@@ -105,6 +105,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 
   for (int i = 0; i < targetParamMax; ++i) {
     switch (targetParam) {
+      case 6:
       case 0:
         // q
         if ((q - ref_q) > th_q) {
@@ -147,6 +148,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
         break;
       case 3:
       case 4:
+      case 5:
         // z
         if (abs(z - ref_z) >= th_z) {
           if (input_z >= 0.0) {
