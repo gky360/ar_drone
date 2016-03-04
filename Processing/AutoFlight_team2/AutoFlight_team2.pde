@@ -12,8 +12,8 @@ boolean video720p = false;
 Tracker tracker;
 int numTargets = 4;
 int numMarkersTarget = 2;
-// float targetWidth = 49.0f; // [cm]
-float targetWidth = 25.7f;          
+float targetWidth = 49.0f; // [cm]
+// float targetWidth = 25.7f;
 String unit = "cm";
 int lineCount = 20;
 
@@ -26,7 +26,7 @@ int targetParamCounterMax = 1;
 boolean autoMode = false;
 
 int Htimer = 0;
-int HtimerUnit = 1000000;     
+int HtimerUnit = 30;
 int start = 0;
 int Ftimer = 0;
 int tlim1 = 120;
@@ -35,15 +35,22 @@ boolean GG = false;
 boolean Sstep = false;
 int Stimer = 0;
 int Slim = 50;
-boolean Bstep1 = false;
+
 int Btimer = 0;
+boolean hassha = false;
+int spinT = 0;
+int walkT = 0;
+int hoverT = 0;
+boolean direc = false;
 int B1lim1 = 40;
 int B1lim2 = 65 + B1lim1;
 int B1lim3 = 20 + B1lim2;
-boolean Bstep2 = false;
 int B2lim1 = 10;
 int B2lim2 = 50 + B2lim1;
 int B2lim3 = 20 + B2lim2;
+int B3lim1 = 25;
+int B3lim2 = 70 + B3lim1;
+int B3lim3 = 20 + B3lim2;
 
 float pre_z = 0.0;
 float pre_w = 0.0;
@@ -56,11 +63,11 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 
   // not found
   if (!tracker.IsExistTarget(targetId)) {
-    text("backward (not tracking)", width/128, height / lineCount);
-    // text("rotate", width/128, height / lineCount);
+    // text("backward (not tracking)", width/128, height / lineCount);
+    text("rotate", width/128, height / lineCount);
     if (autoMode) {
-      ardrone.backward(1);
-      // ardrone.spinRight(20);
+      // ardrone.backward(1);
+      ardrone.spinRight(20);
     }
     return false;
   }
@@ -86,7 +93,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float gain_dw = 1.2;
   float input_q = min(abs(gain_q * (q - ref_q)), 40);
   float input_y = min(abs(gain_y * (y - ref_y)), 50);
-  float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -15, 15);
+  float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -20, 20);
   float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -40, 40);
   boolean isInRange = true;
 
@@ -185,6 +192,41 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   return (1000 <= d && d <= 2000);
 
 }
+
+boolean mikiri_hassha (boolean mikiri, int spin_time, int walk_time, int hover_time, boolean direction) { //(direction = true) => spinRight
+  if (mikiri) {
+    if (Btimer < spin_time) {
+      if (direction){
+        ardrone.spinRight(50);
+        Btimer ++;
+      }
+      else {
+        ardrone.spinLeft(50);
+        Btimer ++;
+      }
+      return true;
+    }
+    else if(Btimer >= spin_time && Btimer < walk_time) {
+      ardrone.backward(20);
+      Btimer ++;
+      return true;
+    }
+    else if (Btimer >= walk_time && Btimer < hover_time) {
+      ardrone.stop();
+      Btimer ++;
+      return true;
+    }
+    else if (Btimer >= hover_time) {
+      Btimer = 0;
+      mikiri = false;
+      return false;
+    }
+  }
+  else {
+    return false;
+  }
+}
+
 
 void setup() {
   if (video720p) {
@@ -290,76 +332,45 @@ void draw() {
     return;
   }
 
-  if (Bstep1 == true) {
-    if (Btimer < B1lim1) {
-      ardrone.spinLeft(50);
-      Btimer ++;
-    }
-    else if (Btimer >= B1lim1 && Btimer < B1lim2) {
-      ardrone.backward((20));
-      Btimer ++;
-    }
-    else if (Btimer >= B1lim2 && Btimer < B1lim3) {
-      ardrone.stop();
-      Btimer ++;
-    }
-    else {
-      Btimer = 0;
-      Bstep1 = false;
-    }
+  if (mikiri_hassha(hassha, spinT, walkT, hoverT, direc)) {
+    text("mikiri now",width/128, height/12);
   }
-  if (Bstep2 == true) {
-    if (Btimer < B2lim1) {
-      ardrone.spinRight(50);
-      Btimer ++;
-    }
-    else if (Btimer >= B2lim1 && Btimer < B2lim2) {
-      ardrone.backward((20));
-      Btimer ++;
-    }
-    else if (Btimer >= B2lim2 && Btimer < B2lim3) {
-      ardrone.stop();
-      Btimer ++;
-    }
-    else {
-      Btimer = 0;
-      Bstep2 = false;
-    }
-  }
-  else if(Sstep == true) {
-    if (Stimer < Slim) {
-      ardrone.goRight((20));
-      Stimer ++;
-    }
-    else {
-      Stimer = 0;
-      Sstep = false;
-      ardrone.stop();
-    }
-  }
-  else{
+  else {
     if (omottatoori(0.0, 0.0, 1500, 0.0)) {
       if(Htimer < 10*HtimerUnit){
         Htimer ++ ; //target timer
       }
       else if(Htimer >= 10*HtimerUnit){
         Htimer = 0;
+        mikiri = true;
         if(targetId == 0){
           targetId = 1;
-          Bstep1 = true;
+          spintT = B1lim1;
+          walkT  = B1lim2;
+          hoverT = B1lim3;
+          direc  = false;
         }
         else if(targetId == 1){
           targetId = 3;
-          Bstep2 = true;//******************** add
+          spintT = B2lim1;
+          walkT  = B2lim2;
+          hoverT = B2lim3;
+          direc  = true;
         }
         else if(targetId == 3){
           targetId = 2;
-          Bstep1 = true;//******************** add
+          spintT = B1lim1;
+          walkT  = B1lim2;
+          hoverT = B1lim3;
+          direc  = false;
         }
         else if(targetId == 2){
           targetId = GId;
-          Bstep2 = true;//******************** add
           GG = true;
+          spintT = B3lim1;
+          walkT  = B3lim2;
+          hoverT = B3lim3;
+          direc  = true;
         }
       }
     }
