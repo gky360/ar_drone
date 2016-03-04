@@ -17,7 +17,8 @@ float targetWidth = 49.0f; // [cm]
 String unit = "cm";
 int lineCount = 20;
 
-int targetId = 3;
+int targetId = 0;
+int lastTargetId = -1;
 int targetParam = 0;
 int targetParamMax = 7;
 int targetParamCounter = 0;
@@ -26,7 +27,7 @@ int targetParamCounterMax = 1;
 boolean autoMode = false;
 
 int Htimer = 0;
-int HtimerUnit = 30;
+int HtimerUnit = 3000000;
 int start = 0;
 int Ftimer = 0;
 int tlim1 = 120;
@@ -54,6 +55,7 @@ int B3lim3 = 20 + B3lim2;
 
 float pre_z = 0.0;
 float pre_w = 0.0;
+float last_q = 0.0;
 
 String ftos(float val, int left_digits, int right_digits) {
   return ((val < 0.0) ? "-" : "  ") + nf(abs(val), left_digits, right_digits);
@@ -61,25 +63,13 @@ String ftos(float val, int left_digits, int right_digits) {
 
 boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
 
-  // not found
-  if (!tracker.IsExistTarget(targetId)) {
-    // text("backward (not tracking)", width/128, height / lineCount);
-    text("rotate", width/128, height / lineCount);
-    if (autoMode) {
-      // ardrone.backward(1);
-      ardrone.spinRight(20);
-    }
-    return false;
+  if (targetId != lastTargetId) {
+    // target has changed
+    last_q = -90.0;
   }
-
-  // get marker position
-  PVector P = tracker.GetTargetPosition(targetId);
-  PVector R = tracker.GetCameraRotationYawPitchRoll(targetId);
-  float q = atan(P.x / P.z) * 180 / PI;
-  float y = P.y *  10; //[cm -> mm]
-  float z = P.z * -10; //[cm -> mm]
-  float w = sqrt(P.x * P.x * 100 + z * z)/*z*/ * tan(R.y + atan(P.x / P.z));
-  text(nfp(q/1000,1,3) + ", " + nfp(y/1000,1,3) + ", " + nf(z/1000,2,3), width/128*50, height / lineCount);
+  lastTargetId = targetId;
+  float gain_rotate = 0.5;
+  float input_rotate = constrain(gain_rotate * (last_q - ref_q), -20, 20);
 
   float th_q = 3;
   float th_y = 50;
@@ -91,10 +81,46 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   float gain_dz = 1.2;
   float gain_w = 0.05;
   float gain_dw = 1.2;
+
+  // not found
+  if (!tracker.IsExistTarget(targetId)) {
+    // text("backward (not tracking)", width/128, height / lineCount);
+    // if (autoMode) {
+    //   ardrone.backward(1);
+    // }
+    if (abs(last_q - ref_q) >= th_q * 2) {
+      if (input_rotate >= 0.0) {
+        text("searchLeft", width/128, height / lineCount);
+        if (autoMode) {
+          ardrone.spinLeft((int)abs(input_rotate));
+        }
+      } else {
+        text("searchRight", width/128, height / lineCount);
+        if (autoMode) {
+          ardrone.spinRight(20);
+        }
+      }
+    } else {
+      text("searchBackward", width/128, height / lineCount);
+      ardrone.backward(5);
+    }
+    return false;
+  }
+
+  // get marker position
+  PVector P = tracker.GetTargetPosition(targetId);
+  PVector R = tracker.GetCameraRotationYawPitchRoll(targetId);
+  float q = atan(P.x / P.z) * 180 / PI;
+  last_q = q;
+  float y = P.y *  10; //[cm -> mm]
+  float z = P.z * -10; //[cm -> mm]
+  float w = sqrt(P.x * P.x * 100 + z * z)/*z*/ * tan(R.y + atan(P.x / P.z));
+  text(nfp(q/1000,1,3) + ", " + nfp(y/1000,1,3) + ", " + nf(z/1000,2,3), width/128*50, height / lineCount);
+
   float input_q = min(abs(gain_q * (q - ref_q)), 40);
   float input_y = min(abs(gain_y * (y - ref_y)), 50);
   float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -20, 20);
-  float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -40, 40);
+  float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -30, 30);
   boolean isInRange = true;
 
   // display the distance to the marker
@@ -105,7 +131,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w) {
   text("z: " + ftos(z, 3, 2) + " input_z: " + ftos(input_z, 2, 2) + " dz: " + ftos(z - pre_z, 3, 2), width / 128 * 50, height / lineCount * 5);
   text("w: " + ftos(w, 3, 2) + " input_w: " + ftos(input_w, 2, 2) + " dw: " + ftos(w - pre_w, 3, 2), width / 128 * 50, height / lineCount * 6);
   text("R.y: " + ftos(R.y * 180/PI, 3, 2) + " atan: " + ftos(atan(P.x / P.z) * 180/PI, 3, 2) + " R.y+atan: " + ftos((R.y + atan(P.x / P.z)) * 180/PI, 3, 2), width / 128 * 50, height / lineCount * 7);
-  text("sqrt_x^2+z^2: " + ftos(sqrt(P.x * P.x * 100 + z * z), 3, 2), width / 128 * 50, height / lineCount * 8);
+  text("input_rotate: " + ftos(input_rotate, 2, 2) + " last_q: " + ftos(last_q, 4, 2), width / 128 * 50, height / lineCount * 8);
 
   pre_z = z;
   pre_w = w;
@@ -222,9 +248,7 @@ boolean mikiri_hassha (boolean mikiri, int spin_time, int walk_time, int hover_t
       return false;
     }
   }
-  else {
-    return false;
-  }
+  return false;
 }
 
 
@@ -342,24 +366,24 @@ void draw() {
       }
       else if(Htimer >= 10*HtimerUnit){
         Htimer = 0;
-        mikiri = true;
+        hassha = true;
         if(targetId == 0){
           targetId = 1;
-          spintT = B1lim1;
+          spinT = B1lim1;
           walkT  = B1lim2;
           hoverT = B1lim3;
           direc  = false;
         }
         else if(targetId == 1){
           targetId = 3;
-          spintT = B2lim1;
+          spinT = B2lim1;
           walkT  = B2lim2;
           hoverT = B2lim3;
           direc  = true;
         }
         else if(targetId == 3){
           targetId = 2;
-          spintT = B1lim1;
+          spinT = B1lim1;
           walkT  = B1lim2;
           hoverT = B1lim3;
           direc  = false;
@@ -367,7 +391,7 @@ void draw() {
         else if(targetId == 2){
           targetId = GId;
           GG = true;
-          spintT = B3lim1;
+          spinT = B3lim1;
           walkT  = B3lim2;
           hoverT = B3lim3;
           direc  = true;
