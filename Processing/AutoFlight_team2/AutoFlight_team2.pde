@@ -21,14 +21,30 @@ int lineCount = 20;
 
 int NONE = numTargets;
 boolean targetIdCandidates[] = { false, false, false, false, false };
-int statusNum = 0;
+int statusNum = 1;
 boolean visitedSa = false;
-int targetId = NONE;
+int targetId = 0;
 int lastTargetId = -1;
 int targetParam = 0;
 int targetParamMax = 7;
 int targetParamCounter = 0;
 int targetParamCounterMax = 1;
+boolean happy = true;
+
+//FINAL******************************************
+int F_Ftimer = 0;
+int F_start = 0;
+int F_tlim_8 = 140;
+int F_tlim_9 = 180;
+int C_S_timer = 0;
+int C_S_tlim = 5;
+boolean C_status = false;
+int F_Htimer = 0;
+int F_HtimerUnit = 30;
+//FINAL******************************************
+
+
+
 
 boolean autoMode = false;
 
@@ -313,6 +329,7 @@ void kesshou() {
   float ref_y = 0.0;
   float ref_z = 0.0;
   float ref_w = 0.0;
+  boolean isCenter = false;
 
   switch (statusNum) {
     case 0:
@@ -330,6 +347,7 @@ void kesshou() {
       ref_y = 0.0;
       ref_z = 1500.0;
       ref_w = 0.0;
+      isCenter = false;
       break;
     case 2:
       targetIdCandidates[0] = true;
@@ -340,6 +358,7 @@ void kesshou() {
       ref_y = 0.0;
       ref_z = 4000.0;
       ref_w = 2000.0;
+      isCenter = true;
       break;
     case 3:
       targetIdCandidates[0] = false;
@@ -350,6 +369,7 @@ void kesshou() {
       ref_y = 0.0;
       ref_z = 1500.0;
       ref_w = 0.0;
+      isCenter = false;
       break;
     case 4:
       targetIdCandidates[0] = false;
@@ -360,6 +380,7 @@ void kesshou() {
       ref_y = 0.0;
       ref_z = 4000.0;
       ref_w = -2000.0;
+      isCenter = true;
       break;
     case 5:
       targetIdCandidates[0] = false;
@@ -375,6 +396,7 @@ void kesshou() {
       } else {
         visitedSa = false;
       }
+      isCenter = false;
       break;
     case 6:
       targetIdCandidates[0] = true;
@@ -391,16 +413,18 @@ void kesshou() {
       } else {
         ref_w = 0.0;
       }
+      isCenter = true;
       break;
     case 7:
-      targetIdCandidates[0] = true;
-      targetIdCandidates[1] = true;
+      targetIdCandidates[0] = false;
+      targetIdCandidates[1] = false;
       targetIdCandidates[2] = !visitedSa;
       targetIdCandidates[3] = visitedSa;
       ref_q = 0.0;
       ref_y = 0.0;
       ref_z = 1500.0;
       ref_w = 0.0;
+      isCenter = false;
       break;
     case 8:
       targetIdCandidates[0] = true;
@@ -417,13 +441,52 @@ void kesshou() {
       } else {
         ref_w = 0.0;
       }
+      isCenter = true;
       break;
     case 9:
-      // landing!!!!!    
-      break;
+      // landing!!!!!
+      ardrone.landing();
+      return;
   }
 
+  //F_Ftimer
+  if(F_start > 0) {
+    F_Ftimer = millis() - F_start;
+  }
 
+  //Hover Timer
+  if(omottatoori(ref_q, ref_y, ref_z, ref_w, isCenter)) {
+    if (statusNum == 8) {
+      statusNum = 9;
+    }
+    if (F_Htimer < 10 * F_HtimerUnit) F_Htimer ++;
+    else {
+      F_Htimer = 0;
+      statusNum ++;
+      C_status = true;
+    }
+  }
+
+  //Walk Timer
+  if(C_status == true) {
+    if (C_S_timer < C_S_tlim * F_HtimerUnit ) C_S_timer ++;
+    else {
+      C_S_timer = 0;
+      C_status = false;
+      statusNum ++;
+    }
+  }
+
+  //Status 8 limit
+  if (F_Ftimer/1000 >= F_tlim_8 * F_HtimerUnit) {
+    statusNum = 8;
+  }
+  //Status 9 limt
+  if (F_Ftimer/1000 >= F_tlim_9 * F_HtimerUnit) {
+    statusNum = 9;
+  }
+
+  return;
 
 }
 
@@ -484,7 +547,7 @@ void draw() {
 
   if(!GG){
     if (targetId == NONE) {
-      String str = "Searching";
+      String str = "[@" + statusNum + "] Searching";
       for (int i = 0; i < numTargets; i++) {
         if (targetIdCandidates[i]) {
           str += " #" + i;
@@ -520,6 +583,7 @@ void draw() {
   }
 
   if (isFinal) {
+    text("F_Htime:" + F_Htimer/F_HtimerUnit +" F_Ftime:" + F_Ftimer/1000, width-400,height / lineCount * (lineCount - 3));
     kesshou();
     return;
   }
@@ -654,11 +718,12 @@ void keyPressed() {
     }
     else if (key == '0') {
       targetId++;
-      if(targetId == numTargets) targetId = 0;
+      if(targetId >= numTargets) targetId = 0;
     }
     else if (key == 'a') {
       autoMode = true;
       start = millis();
+      F_start = millis(); //********************************************************FINAL
     }
   }
 }
