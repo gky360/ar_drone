@@ -9,18 +9,18 @@ ARDroneForP5 ardrone;
 
 boolean video720p = false;
 
-boolean isFinal = true;
+boolean isFinal = false;
 
 Tracker tracker;
 int numTargets = 4;
 int numMarkersTarget = 2;
 float targetWidth = 49.0f; // [cm]
-// float targetWidth = 25.7f;
+// float targetWidth = 30.0f;
 String unit = "cm";
 int lineCount = 20;
 
 int NONE = numTargets;
-boolean targetIdCandidates[] = { false, false, false, false, false };
+boolean targetIdCandidates[] = { true, true, true, true, false };
 int statusNum = 1;
 boolean visitedSa = false;
 int targetId = 0;
@@ -165,7 +165,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
 
   float input_q = min(abs(gain_q * (q - ref_q)), 40);
   float input_y = min(abs(gain_y * (y - ref_y)), 50);
-  float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -20, 20);
+  float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -25, 25);
   float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -25, 25);
   boolean isInRange = true;
 
@@ -333,11 +333,6 @@ void kesshou() {
 
   switch (statusNum) {
     case 0:
-      targetIdCandidates[0] = true;
-      targetIdCandidates[1] = false;
-      targetIdCandidates[2] = false;
-      targetIdCandidates[3] = false;
-      break;
     case 1:
       targetIdCandidates[0] = true;
       targetIdCandidates[1] = false;
@@ -545,21 +540,31 @@ void draw() {
   fill(255, 255, 255);
   textSize(height / lineCount);
 
-  if(!GG){
-    if (targetId == NONE) {
-      String str = "[@" + statusNum + "] Searching";
-      for (int i = 0; i < numTargets; i++) {
-        if (targetIdCandidates[i]) {
-          str += " #" + i;
+
+  if (isFinal) {
+    if(!GG){
+      if (targetId == NONE) {
+        String str = "[@" + statusNum + "] Searching";
+        for (int i = 0; i < numTargets; i++) {
+          if (targetIdCandidates[i]) {
+            str += " #" + i;
+          }
         }
+        text(str, 0, 200);
+      } else {
+        text("[@" + statusNum + "], Go to #" + targetId, 0, 200);
       }
-      text(str, 0, 200);
     } else {
-      text("[@" + statusNum + "], Go to #" + targetId, 0, 200);
+      text("[@" + statusNum + "], Go to #GOAL", 0, 200);
     }
   } else {
-    text("[@" + statusNum + "], Go to #GOAL", 0,200);
+    if (!GG) {
+      text("Go to #" + targetId, 0, 200);
+    } else {
+      text("Go to #GOAL", 0,200);
+    }
   }
+  text("isFinal: " + (isFinal ? "true" : "false"), 0, 200 + height / lineCount);
 
   // print out AR.Drone information
   ardrone.printARDroneInfo();
@@ -583,7 +588,7 @@ void draw() {
   }
 
   if (isFinal) {
-    text("F_Htime:" + F_Htimer/F_HtimerUnit +" F_Ftime:" + F_Ftimer/1000, width-400,height / lineCount * (lineCount - 3));
+    text("F_Htime:" + F_Htimer/F_HtimerUnit +" F_Ftime:" + F_Ftimer/1000 +" C_S_time:" + C_S_timer/F_HtimerUnit, width-400,height / lineCount * (lineCount - 3));
     kesshou();
     return;
   }
@@ -724,6 +729,19 @@ void keyPressed() {
       autoMode = true;
       start = millis();
       F_start = millis(); //********************************************************FINAL
+    }
+    else if (key == 'f') {
+      if (isFinal) {
+        isFinal = false;
+        targetIdCandidates[0] = true;
+        targetIdCandidates[1] = true;
+        targetIdCandidates[2] = true;
+        targetIdCandidates[3] = true;
+      } else {
+        isFinal = true;
+        statusNum = 1;
+        targetId = NONE;
+      }
     }
   }
 }
