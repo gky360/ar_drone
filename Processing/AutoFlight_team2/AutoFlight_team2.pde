@@ -186,6 +186,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   text("w: " + ftos(w, 3, 2) + " input_w: " + ftos(input_w, 2, 2) + " dw: " + ftos(w - pre_w, 3, 2), width / 128 * 50, height / lineCount * 6);
   text("R.y: " + ftos(R.y * 180/PI, 3, 2) + " atan: " + ftos(atan(P.x / P.z) * 180/PI, 3, 2) + " R.y+atan: " + ftos((R.y + atan(P.x / P.z)) * 180/PI, 3, 2), width / 128 * 50, height / lineCount * 7);
   text("input_rotate: " + ftos(input_rotate, 2, 2) + " last_q: " + ftos(last_q, 4, 2), width / 128 * 50, height / lineCount * 8);
+  text("x1: " + ftos(x1, 2, 2) + " z1: " + ftos(z1, 2, 2) + " the1: " + ftos(the1, 2, 2), width / 128 * 50, height / lineCount * 9);
 
   pre_z = z;
   pre_w = w;
@@ -274,9 +275,9 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   }
   if (isLanding) {
     if (targetId == 0) {
-      return (((-5<=q) && (q <= 5)&&(-500<=y)&&(y<=500)&&abs(z-ref_z)<=200&&abs(w-ref_w)<=200)||(abs(x1-1800)<=200&&abs(z1-3850)<=200));
+      return (/*((-5<=q) && (q <= 5)&&abs(y+500)<=200&&abs(z-ref_z)<=200&&abs(w-ref_w)<=200) || */(abs(y+500)<=200&&abs(x1-1800)<=200&&abs(z1-3850)<=200));
     } else if (targetId == 1) {
-      return (((-5<=q) && (q <= 5)&&(-500<=y)&&(y<=500)&&abs(z-ref_z)<=200&&abs(w-ref_w)<=200)||(abs(x1+1800)<=200&&abs(z1-3850)<=200));
+      return (/*((-5<=q) && (q <= 5)&&abs(y+500)<=200&&abs(z-ref_z)<=200&&abs(w-ref_w)<=200) || */(abs(y+500)<=200&&abs(x1+1800)<=200&&abs(z1-3850)<=200));
     }
   }
   return (1000 <= d && d <= 2000);
