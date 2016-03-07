@@ -37,10 +37,11 @@ int F_start = 0;
 int F_tlim_8 = 140;
 int F_tlim_9 = 180;
 int C_S_timer = 0;
-int C_S_tlim = 5;
+int C_S_tlim = 10;
 boolean C_status = false;
 int F_Htimer = 0;
 int F_HtimerUnit = 30;
+// int F_Btimer = 0;
 //FINAL******************************************
 
 
@@ -53,28 +54,37 @@ int HtimerUnit = 30;
 int start = 0;
 int Ftimer = 0;
 int tlim1 = 120;
-int GId = 0;
+int GId = 2;
 boolean GG = false;
 boolean Sstep = false;
 int Stimer = 0;
 int Slim = 50;
 
 int Btimer = 0;
-int Wtimer = 0;
 boolean hassha = false;
-int spinT = 0;
+boolean h_kakunin = false;
+int spinT1 = 0;
+int spinT2 = 0;
 int walkT = 0;
 int hoverT = 0;
 boolean direc = false;
-int B1lim1 = 75;
-int B1lim2 = 80 + B1lim1;
+
+int B1lim1 = 45;
+int B1lim2 = 70 + B1lim1;
 int B1lim3 = 20 + B1lim2;
-int B2lim1 = 10;
+int B1lim4 = 0 + B1lim3;
+int B2lim1 = 5;
 int B2lim2 = 60 + B2lim1;
-int B2lim3 = 30 + B2lim2;
-int B3lim1 = 20;
-int B3lim2 = 60 + B3lim1;
-int B3lim3 = 20 + B3lim2;
+int B2lim3 = 20 + B2lim2;
+int B2lim4 = 0 + B2lim3;
+// int B3lim1 = 30;
+// int B3lim2 = 45 + B3lim1;
+// int B3lim3 = 20 + B3lim2;
+// int B3lim4 = 20 + B3lim3;
+int B3lim1 = 0;
+int B3lim2 = 0 + B3lim1;
+int B3lim3 = 0 + B3lim2;
+int B3lim4 = 0 + B3lim3;
 
 float pre_z = 0.0;
 float pre_w = 0.0;
@@ -107,6 +117,14 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   float gain_w = 0.05;
   float gain_dw = 1.5;
 
+  // if (F_Btimer > 0) {
+  //   F_Btimer--;
+  //   if (autoMode) {
+  //     ardrone.backward(20);
+  //   }
+  //   return false;
+  // }
+
   if (!targetIdCandidates[targetId]) {
     targetId = NONE;
   }
@@ -126,7 +144,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
           if (Ftimer/rotate_duration%3==0) {
             ardrone.stop();
           } else {
-            ardrone.spinLeft((int)max(abs(input_rotate), 5));
+            ardrone.spinLeft((int)max(abs(input_rotate), 20));
           }
         }
       } else {
@@ -135,7 +153,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
           if (Ftimer/rotate_duration%3==0) {
             ardrone.stop();
           } else {
-            ardrone.spinRight((int)max(abs(input_rotate), 5));
+            ardrone.spinRight((int)max(abs(input_rotate), 10));
           }
         }
       }
@@ -181,7 +199,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
 
   float max_z = (isLanding ? 15 : 25);
   float input_q = min(abs(gain_q * (q - ref_q)), 40);
-  float input_y = min(abs(gain_y * (y - ref_y)), 40);
+  float input_y = min(abs(gain_y * (y - ref_y)), 50);
   float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -max_z, max_z);
   float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -25, 25);
   boolean isInRange = true;
@@ -207,7 +225,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
         // q
         if ((q - ref_q) > th_q) {
           text("spinLeft", width/128, height / lineCount * 3);
-          if (autoMode) ardrone.spinLeft((int)input_q);
+          if (autoMode) ardrone.spinLeft((int)(input_q * 1.2));
           isInRange = false;
         } else if ((q - ref_q) < -th_q) {
           text("spinRight", width/128, height / lineCount * 3);
@@ -289,9 +307,9 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
     return (abs(z - ref_z) < 150 && abs(y - ref_y) < th_y);
   }
   if (isLanding) {
-    if (targetId == 0) {
+    if (targetId == 0 || targetId == 3) {
       return (/*((-5<=q) && (q <= 5)&&abs(y+500)<=200&&abs(z-ref_z)<=200&&abs(w-ref_w)<=200) || */(abs(y+500)<=200&&abs(x1-1800)<=200&&abs(z1-3850)<=200));
-    } else if (targetId == 1) {
+    } else if (targetId == 1 || targetId == 2) {
       return (/*((-5<=q) && (q <= 5)&&abs(y+500)<=200&&abs(z-ref_z)<=200&&abs(w-ref_w)<=200) || */(abs(y+500)<=200&&abs(x1+1800)<=200&&abs(z1-3850)<=200));
     }
   }
@@ -299,21 +317,22 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
 
 }
 
-boolean mikiri_hassha (boolean mikiri, int spin_time, int walk_time, int hover_time, boolean direction) { //(direction = true) => spinRight
-  text("Btimer: " + ftos(Btimer, 2, 2) + " Wtimer: " + ftos(Wtimer, 2, 2), width / 128 * 50, height / lineCount * 18);
-  if (mikiri) {
-    if (Btimer < spin_time) {
-      if (direction){
+//******************************mikiri_kai
+boolean mikiri_kai (boolean mikiri, int spin_time1, int walk_time, int hover_time, int spin_time2, boolean direction) {
+  if(mikiri) {
+    if (Btimer < spin_time1) {
+      if (direction) {
         ardrone.spinRight(50);
         Btimer ++;
+        return true;
       }
       else {
         ardrone.spinLeft(50);
         Btimer ++;
+        return true;
       }
-      return true;
     }
-    else if(Btimer >= spin_time && Btimer < walk_time) {
+    else if (Btimer >= spin_time1 && Btimer < walk_time) {
       ardrone.backward(20);
       Btimer ++;
       return true;
@@ -323,14 +342,19 @@ boolean mikiri_hassha (boolean mikiri, int spin_time, int walk_time, int hover_t
       Btimer ++;
       return true;
     }
-    else if (Btimer >= hover_time) {
-      mikiri = false;
+    else if (Btimer >= hover_time && Btimer < spin_time2) {
+      ardrone.spinRight(50);
+      Btimer ++;
+      return true;
+    }
+    else if (Btimer >= spin_time2) {
+      // Btimer = 0;
       return false;
     }
   }
   return false;
 }
-
+//******************************mikiri_kai
 
 void setup() {
   if (video720p) {
@@ -377,6 +401,7 @@ void kesshou() {
       ref_w = 0.0;
       isCenter = false;
       C_status = false;
+      // F_Btimer = 0;
       break;
     case 2:
       targetIdCandidates[0] = true;
@@ -385,10 +410,11 @@ void kesshou() {
       targetIdCandidates[3] = false;
       ref_q = 0.0;
       ref_y = 0.0;
-      ref_z = 3000.0;
-      ref_w = 3000.0;
+      ref_z = 4000.0;
+      ref_w = 2000.0;
       isCenter = true;
       C_status = true;
+      // F_Btimer = 10;
       break;
     case 3:
       targetIdCandidates[0] = false;
@@ -401,6 +427,7 @@ void kesshou() {
       ref_w = 0.0;
       isCenter = false;
       C_status = false;
+      // F_Btimer = 0;
       break;
     case 4:
       targetIdCandidates[0] = false;
@@ -413,6 +440,7 @@ void kesshou() {
       ref_w = -3000.0;
       isCenter = true;
       C_status = true;
+      // F_Btimer = 10;
       break;
     case 5:
       targetIdCandidates[0] = false;
@@ -430,6 +458,7 @@ void kesshou() {
       }
       isCenter = false;
       C_status = false;
+      // F_Btimer = 10;
       break;
     case 6:
       targetIdCandidates[0] = true;
@@ -438,16 +467,17 @@ void kesshou() {
       targetIdCandidates[3] = false;
       ref_q = 0.0;
       ref_y = 0.0;
-      ref_z = 3000.0;
+      ref_z = 4000.0;
       if (targetId == 0 || targetId == 3) {
-        ref_w = 3000.0;
+        ref_w = 2000.0;
       } else if (targetId == 1 || targetId == 2) {
-        ref_w = -3000.0;
+        ref_w = -2000.0;
       } else {
         ref_w = 0.0;
       }
       isCenter = true;
       C_status = true;
+      // F_Btimer = 0;
       break;
     case 7:
       targetIdCandidates[0] = false;
@@ -460,6 +490,7 @@ void kesshou() {
       ref_w = 0.0;
       isCenter = false;
       C_status = false;
+      // F_Btimer = 10;
       break;
     case 8:
       targetIdCandidates[0] = true;
@@ -470,15 +501,16 @@ void kesshou() {
       ref_y = -500.0;
       ref_z = 4000.0;
       if (targetId == 0 || targetId == 3) {
-        ref_w = 1800.0;
+        ref_w = 2000.0;
       } else if (targetId == 1 || targetId == 2) {
-        ref_w = -1800.0;
+        ref_w = -2000.0;
       } else {
         ref_w = 0.0;
       }
       isCenter = true;
       isLanding = true;
       C_status = false;
+      // F_Btimer = 0;
       break;
     case 9:
       // landing!!!!!
@@ -508,6 +540,9 @@ void kesshou() {
 
   //Walk Timer
   if(C_status == true && targetId != NONE) {
+    // if (F_Btimer == 0) {
+    //   F_Btimer = 10;
+    // }
     if (C_S_timer < C_S_tlim * F_HtimerUnit ) C_S_timer ++;
     else {
       C_S_timer = 0;
@@ -625,7 +660,7 @@ void draw() {
   if(Ftimer/1000 < tlim1){
     text("Htime:" + Htimer/HtimerUnit +" Ftime:" + Ftimer/1000, width-400,height / lineCount * (lineCount - 1));
   }
-  else if (Ftimer/1000 >= tlim1){
+  else if (Ftimer/1000 >= tlim1 && !isFinal){
     ardrone.landing();
     autoMode  = false;
     text("GOAL...?", width-400,100);
@@ -639,55 +674,72 @@ void draw() {
   }
 
   if(hassha){
-    if(targetId == 0){
-      spinT = B1lim1;
+    if(h_kakunin && targetId == 0){
+      spinT1 = B1lim1;
       walkT  = B1lim2;
       hoverT = B1lim3;
+      spinT2 = B1lim4;
       direc  = false;
-      if (Btimer >= hoverT){
-        Btimer = 0;
+      if (Btimer >= spinT2) {
         targetId = 1;
         hassha = false;
+        h_kakunin = false;
+        Btimer = 0;
       }
     }
-    else if(targetId == 1){
-      spinT = B2lim1;
+    else if(h_kakunin && targetId == 1){
+      spinT1 = B2lim1;
       walkT  = B2lim2;
       hoverT = B2lim3;
+      spinT2 = B2lim4;
       direc  = true;
-      if (Btimer >= hoverT) {
-        Btimer = 0;
-        targetId = 3;
+      if (Btimer >= spinT2) {
         hassha = false;
+        targetId = 3;
+        h_kakunin = false;
+        Btimer = 0;
       }
     }
-    else if(targetId == 3){
-      spinT = B1lim1;
+    else if(h_kakunin && targetId == 3){
+      spinT1 = B1lim1;
       walkT  = B1lim2;
       hoverT = B1lim3;
+      spinT2 = B1lim4;
       direc  = false;
-      if (Btimer >= hoverT) {
-        Btimer = 0;
-        targetId = 2;
+      if (Btimer >= spinT2) {
         hassha = false;
+        targetId = 2;
+        h_kakunin = false;
+        Btimer = 0;
       }
     }
-    else if(targetId == 2){
-      spinT = B3lim1;
+    else if(h_kakunin && targetId == 2){
+      spinT1 = B3lim1;
       walkT  = B3lim2;
       hoverT = B3lim3;
+      spinT2 = B3lim4;
       direc  = true;
-      if (Btimer >= hoverT) {
-        Btimer = 0;
-        targetId = GId;
+      if (Btimer >= spinT2) {
         hassha = false;
+        targetId = GId;
+        h_kakunin = false;
+        Btimer = 0;
         GG = true;
       }
     }
   }
-
-  if (mikiri_hassha(hassha, spinT, walkT, hoverT, direc)) {
+  if (mikiri_kai(hassha, spinT1, walkT, hoverT, spinT2, direc)) {
     text("mikiri now",width/128, height/12);
+  }
+  else if (GG) {
+    if (omottatoori(0.0, -500, 4000.0, -1800.0, true, true)) {
+      text("GG",width/128, height/12);
+      Htimer ++;
+      if(Htimer > 30) {
+        ardrone.landing();
+        autoMode = false;
+      }
+    }
   }
   else {
     if (omottatoori(0.0, 0.0, 1500, 0.0, false, false)) {
@@ -697,6 +749,7 @@ void draw() {
       else if(Htimer >= 10*HtimerUnit){
         Htimer = 0;
         hassha = true;
+        h_kakunin = true;
       }
     }
   }
