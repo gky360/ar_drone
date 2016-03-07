@@ -94,6 +94,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   float gain_rotate = 0.5;
   float input_rotate = constrain(gain_rotate * (last_q - ref_q), -70, 70);
   int rotate_duration = 300; // [ms]
+  float h = ardrone.getAltitude(); // [mm]
 
   float th_q = 3;
   float th_y = 50;
@@ -125,7 +126,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
           if (Ftimer/rotate_duration%3==0) {
             ardrone.stop();
           } else {
-            ardrone.spinLeft((int)abs(input_rotate));
+            ardrone.spinLeft((int)max(abs(input_rotate), 5));
           }
         }
       } else {
@@ -134,7 +135,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
           if (Ftimer/rotate_duration%3==0) {
             ardrone.stop();
           } else {
-            ardrone.spinRight((int)abs(input_rotate));
+            ardrone.spinRight((int)max(abs(input_rotate), 5));
           }
         }
       }
@@ -147,14 +148,13 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
     float ReF_altitude = 1300;
     float GAIN_altitude = 0.4;
     float th_altitude = 200;
-    float altitude_rotate = ardrone.getAltitude();
-    float P_INPUT_rotate = min(abs(GAIN_altitude * (ReF_altitude -altitude_rotate)), 30);
-    if(altitude_rotate <ReF_altitude -th_altitude){
+    float P_INPUT_rotate = min(abs(GAIN_altitude * (ReF_altitude -h)), 30);
+    if(h <ReF_altitude -th_altitude){
       if(autoMode){
         ardrone.up((int)P_INPUT_rotate);
       }
     }
-    else if(altitude_rotate >ReF_altitude +th_altitude){
+    else if(h >ReF_altitude +th_altitude){
       if(autoMode){
         ardrone.down((int)P_INPUT_rotate);
       }
@@ -195,6 +195,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   text("w: " + ftos(w, 3, 2) + " input_w: " + ftos(input_w, 2, 2) + " dw: " + ftos(w - pre_w, 3, 2), width / 128 * 50, height / lineCount * 6);
   text("R.y: " + ftos(R.y * 180/PI, 3, 2) + " atan: " + ftos(atan(P.x / P.z) * 180/PI, 3, 2) + " R.y+atan: " + ftos((R.y + atan(P.x / P.z)) * 180/PI, 3, 2), width / 128 * 50, height / lineCount * 7);
   text("input_rotate: " + ftos(input_rotate, 2, 2) + " last_q: " + ftos(last_q, 4, 2), width / 128 * 50, height / lineCount * 8);
+  text("input_rotate: " + ftos(h, 2, 2), width / 128 * 50, height / lineCount * 9);
 
   pre_z = z;
   pre_w = w;
@@ -268,6 +269,12 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   if (isInRange) {
     text("nothing", width/128, height / lineCount * 1);
     // if (autoMode) ardrone.stop();
+  }
+
+  // if too high
+  if (h > 1800) {
+    text("too high !!!!!", width/128, height / lineCount * 1);
+    ardrone.down(30);
   }
 
   text("targetParam: " + targetParam, width/128, height / lineCount * 2);
@@ -432,9 +439,9 @@ void kesshou() {
       ref_q = 0.0;
       ref_y = 0.0;
       ref_z = 3000.0;
-      if (targetId == 0) {
+      if (targetId == 0 || targetId == 3) {
         ref_w = 3000.0;
-      } else if (targetId == 1) {
+      } else if (targetId == 1 || targetId == 2) {
         ref_w = -3000.0;
       } else {
         ref_w = 0.0;
@@ -462,9 +469,9 @@ void kesshou() {
       ref_q = 0.0;
       ref_y = -500.0;
       ref_z = 4000.0;
-      if (targetId == 0) {
+      if (targetId == 0 || targetId == 3) {
         ref_w = 1800.0;
-      } else if (targetId == 1) {
+      } else if (targetId == 1 || targetId == 2) {
         ref_w = -1800.0;
       } else {
         ref_w = 0.0;
