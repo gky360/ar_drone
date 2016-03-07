@@ -84,7 +84,7 @@ String ftos(float val, int left_digits, int right_digits) {
   return ((val < 0.0) ? "-" : "  ") + nf(abs(val), left_digits, right_digits);
 }
 
-boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean isCenter) {
+boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean isCenter, boolean isLanding) {
 
   if (targetId != lastTargetId) {
     // target has changed
@@ -139,7 +139,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
     float GAIN_altitude = 0.4;
     float th_altitude = 200;
     float altitude_rotate = ardrone.getAltitude();
-    float P_INPUT_rotate = min(abs(GAIN_altitude * (ReF_altitude -altitude_rotate)), 40);
+    float P_INPUT_rotate = min(abs(GAIN_altitude * (ReF_altitude -altitude_rotate)), 30);
     if(altitude_rotate <ReF_altitude -th_altitude){
       if(autoMode){
         ardrone.up((int)P_INPUT_rotate);
@@ -158,10 +158,17 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   PVector R = tracker.GetCameraRotationYawPitchRoll(targetId);
   float q = atan(P.x / P.z) * 180 / PI;
   last_q = q;
+  float x = P.x *  10; //[cm -> mm]
   float y = P.y *  10; //[cm -> mm]
   float z = P.z * -10; //[cm -> mm]
   float w = sqrt(P.x * P.x * 100 + z * z)/*z*/ * tan(R.y + atan(P.x / P.z));
+  float roll = R.y * 180/PI;
   text(nfp(q/1000,1,3) + ", " + nfp(y/1000,1,3) + ", " + nf(z/1000,2,3), width/128*50, height / lineCount);
+
+  float the = roll-q;
+  float the1 = the*PI/180;
+  float z1=z*cos(the1)+x*sin(the1);
+  float x1=z*sin(the1)-x*cos(the1);
 
   float input_q = min(abs(gain_q * (q - ref_q)), 40);
   float input_y = min(abs(gain_y * (y - ref_y)), 50);
@@ -264,6 +271,9 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   if (isCenter) {
     return (abs(z - ref_z) < 150 && abs(y - ref_y) < th_y);
   }
+  if (isLanding) {
+    return (((-10<=q) && (q <= 10)&&(-500<=y)&&(y<=500)&&abs(z-ref_z)<=200&&abs(w-ref_w)<=200)||(abs(x1-1800)<=200&&abs(z1-3850)<=200));
+  }
   return (1000 <= d && d <= 2000);
 
 }
@@ -330,7 +340,9 @@ void kesshou() {
   float ref_z = 0.0;
   float ref_w = 0.0;
   boolean isCenter = false;
+  boolean isLanding = false;
 
+  isLanding = false;
   switch (statusNum) {
     case 0:
     case 1:
@@ -353,7 +365,7 @@ void kesshou() {
       ref_q = 0.0;
       ref_y = 0.0;
       ref_z = 4000.0;
-      ref_w = 2000.0;
+      ref_w = 3000.0;
       isCenter = true;
       C_status = true;
       break;
@@ -377,7 +389,7 @@ void kesshou() {
       ref_q = 0.0;
       ref_y = 0.0;
       ref_z = 4000.0;
-      ref_w = -2000.0;
+      ref_w = -3000.0;
       isCenter = true;
       C_status = true;
       break;
@@ -407,9 +419,9 @@ void kesshou() {
       ref_y = 0.0;
       ref_z = 4000.0;
       if (targetId == 0) {
-        ref_w = 2000.0;
+        ref_w = 3000.0;
       } else if (targetId == 1) {
-        ref_w = -2000.0;
+        ref_w = -3000.0;
       } else {
         ref_w = 0.0;
       }
@@ -434,16 +446,17 @@ void kesshou() {
       targetIdCandidates[2] = false;
       targetIdCandidates[3] = false;
       ref_q = 0.0;
-      ref_y = -800.0;
-      ref_z = 4000.0;
+      ref_y = -500.0;
+      ref_z = 5000.0;
       if (targetId == 0) {
-        ref_w = 2000.0;
+        ref_w = 3000.0;
       } else if (targetId == 1) {
-        ref_w = -2000.0;
+        ref_w = -3000.0;
       } else {
         ref_w = 0.0;
       }
       isCenter = true;
+      isLanding = true;
       C_status = false;
       break;
     case 9:
@@ -458,7 +471,7 @@ void kesshou() {
   }
 
   //Hover Timer
-  if(omottatoori(ref_q, ref_y, ref_z, ref_w, isCenter)) {
+  if(omottatoori(ref_q, ref_y, ref_z, ref_w, isCenter, isLanding)) {
     if (statusNum == 8) {
       statusNum = 9;
     }
@@ -653,7 +666,7 @@ void draw() {
     text("mikiri now",width/128, height/12);
   }
   else {
-    if (omottatoori(0.0, 0.0, 1500, 0.0, false)) {
+    if (omottatoori(0.0, 0.0, 1500, 0.0, false, false)) {
       if(Htimer < 10*HtimerUnit){
         Htimer ++ ; //target timer
       }
@@ -737,6 +750,9 @@ void keyPressed() {
       autoMode = true;
       start = millis();
       F_start = millis(); //********************************************************FINAL
+    }
+    else if (key == 'n') {
+      statusNum = (statusNum + 1) % 9;
     }
     else if (key == 'f') {
       if (isFinal) {
