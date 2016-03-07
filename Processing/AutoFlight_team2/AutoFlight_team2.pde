@@ -92,7 +92,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   }
   lastTargetId = targetId;
   float gain_rotate = 0.5;
-  float input_rotate = constrain(gain_rotate * (last_q - ref_q), -20, 20);
+  float input_rotate = constrain(gain_rotate * (last_q - ref_q), -25, 25);
 
   float th_q = 3;
   float th_y = 50;
@@ -101,9 +101,9 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   float gain_q = 4;
   float gain_y = 0.4;
   float gain_z = 0.04;
-  float gain_dz = 1.5;
-  float gain_w = 0.03;
-  float gain_dw = 1.0;
+  float gain_dz = 1.7;
+  float gain_w = 0.05;
+  float gain_dw = 1.5;
 
   if (!targetIdCandidates[targetId]) {
     targetId = NONE;
@@ -170,9 +170,10 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   float z1=z*cos(the1)+x*sin(the1);
   float x1=z*sin(the1)-x*cos(the1);
 
+  float max_z = (isLanding ? 15 : 25);
   float input_q = min(abs(gain_q * (q - ref_q)), 40);
   float input_y = min(abs(gain_y * (y - ref_y)), 50);
-  float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -25, 25);
+  float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -max_z, max_z);
   float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -25, 25);
   boolean isInRange = true;
 
@@ -189,7 +190,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   pre_z = z;
   pre_w = w;
 
-  for (int i = 0; i < targetParamMax; ++i) {
+  for (int i = 0; i < targetParamMax - 1; ++i) {
     switch (targetParam) {
       case 6:
       case 0:
@@ -272,7 +273,11 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
     return (abs(z - ref_z) < 150 && abs(y - ref_y) < th_y);
   }
   if (isLanding) {
-    return (((-10<=q) && (q <= 10)&&(-500<=y)&&(y<=500)&&abs(z-ref_z)<=200&&abs(w-ref_w)<=200)||(abs(x1-1800)<=200&&abs(z1-3850)<=200));
+    if (targetId == 0) {
+      return (((-5<=q) && (q <= 5)&&(-500<=y)&&(y<=500)&&abs(z-ref_z)<=200&&abs(w-ref_w)<=200)||(abs(x1-1800)<=200&&abs(z1-3850)<=200));
+    } else if (targetId == 1) {
+      return (((-5<=q) && (q <= 5)&&(-500<=y)&&(y<=500)&&abs(z-ref_z)<=200&&abs(w-ref_w)<=200)||(abs(x1+1800)<=200&&abs(z1-3850)<=200));
+    }
   }
   return (1000 <= d && d <= 2000);
 
@@ -364,7 +369,7 @@ void kesshou() {
       targetIdCandidates[3] = false;
       ref_q = 0.0;
       ref_y = 0.0;
-      ref_z = 4000.0;
+      ref_z = 3000.0;
       ref_w = 3000.0;
       isCenter = true;
       C_status = true;
@@ -388,7 +393,7 @@ void kesshou() {
       targetIdCandidates[3] = false;
       ref_q = 0.0;
       ref_y = 0.0;
-      ref_z = 4000.0;
+      ref_z = 3000.0;
       ref_w = -3000.0;
       isCenter = true;
       C_status = true;
@@ -417,7 +422,7 @@ void kesshou() {
       targetIdCandidates[3] = false;
       ref_q = 0.0;
       ref_y = 0.0;
-      ref_z = 4000.0;
+      ref_z = 3000.0;
       if (targetId == 0) {
         ref_w = 3000.0;
       } else if (targetId == 1) {
@@ -447,11 +452,11 @@ void kesshou() {
       targetIdCandidates[3] = false;
       ref_q = 0.0;
       ref_y = -500.0;
-      ref_z = 5000.0;
+      ref_z = 4000.0;
       if (targetId == 0) {
-        ref_w = 3000.0;
+        ref_w = 1800.0;
       } else if (targetId == 1) {
-        ref_w = -3000.0;
+        ref_w = -1800.0;
       } else {
         ref_w = 0.0;
       }
@@ -472,10 +477,11 @@ void kesshou() {
 
   //Hover Timer
   if(omottatoori(ref_q, ref_y, ref_z, ref_w, isCenter, isLanding)) {
-    if (statusNum == 8) {
-      statusNum = 9;
-    }
-    if (F_Htimer < 10 * F_HtimerUnit) F_Htimer ++;
+    // if (statusNum == 8) {
+    //   statusNum = 9;
+    // }
+    float F_Hlim = ((statusNum != 8) ? 10.0 : 1.0);
+    if (F_Htimer < F_Hlim * F_HtimerUnit) F_Htimer ++;
     else {
       F_Htimer = 0;
       statusNum ++;
@@ -490,6 +496,7 @@ void kesshou() {
       C_S_timer = 0;
       C_status = false;
       statusNum ++;
+      ardrone.stop();
     }
   }
 
@@ -752,7 +759,7 @@ void keyPressed() {
       F_start = millis(); //********************************************************FINAL
     }
     else if (key == 'n') {
-      statusNum = (statusNum + 1) % 9;
+      statusNum = (statusNum + 1) % 10;
     }
     else if (key == 'f') {
       if (isFinal) {
