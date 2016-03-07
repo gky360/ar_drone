@@ -92,7 +92,8 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   }
   lastTargetId = targetId;
   float gain_rotate = 0.5;
-  float input_rotate = constrain(gain_rotate * (last_q - ref_q), -25, 25);
+  float input_rotate = constrain(gain_rotate * (last_q - ref_q), -70, 70);
+  int rotate_duration = 300; // [ms]
 
   float th_q = 3;
   float th_y = 50;
@@ -121,12 +122,20 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
       if (input_rotate >= 0.0) {
         text("searchLeft", width/128, height / lineCount);
         if (autoMode) {
-          ardrone.spinLeft((int)abs(input_rotate));
+          if (Ftimer/rotate_duration%3==0) {
+            ardrone.stop();
+          } else {
+            ardrone.spinLeft((int)abs(input_rotate));
+          }
         }
       } else {
         text("searchRight", width/128, height / lineCount);
         if (autoMode) {
-          ardrone.spinRight(20);
+          if (Ftimer/rotate_duration%3==0) {
+            ardrone.stop();
+          } else {
+            ardrone.spinRight((int)abs(input_rotate));
+          }
         }
       }
     } else {
@@ -172,7 +181,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
 
   float max_z = (isLanding ? 15 : 25);
   float input_q = min(abs(gain_q * (q - ref_q)), 40);
-  float input_y = min(abs(gain_y * (y - ref_y)), 50);
+  float input_y = min(abs(gain_y * (y - ref_y)), 40);
   float input_z = constrain(gain_z * (z - ref_z) + gain_dz * (z - pre_z), -max_z, max_z);
   float input_w = constrain(gain_w * (w - ref_w) + gain_dw * (w - pre_w), -25, 25);
   boolean isInRange = true;
@@ -186,7 +195,6 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   text("w: " + ftos(w, 3, 2) + " input_w: " + ftos(input_w, 2, 2) + " dw: " + ftos(w - pre_w, 3, 2), width / 128 * 50, height / lineCount * 6);
   text("R.y: " + ftos(R.y * 180/PI, 3, 2) + " atan: " + ftos(atan(P.x / P.z) * 180/PI, 3, 2) + " R.y+atan: " + ftos((R.y + atan(P.x / P.z)) * 180/PI, 3, 2), width / 128 * 50, height / lineCount * 7);
   text("input_rotate: " + ftos(input_rotate, 2, 2) + " last_q: " + ftos(last_q, 4, 2), width / 128 * 50, height / lineCount * 8);
-  text("x1: " + ftos(x1, 2, 2) + " z1: " + ftos(z1, 2, 2) + " the1: " + ftos(the1, 2, 2), width / 128 * 50, height / lineCount * 9);
 
   pre_z = z;
   pre_w = w;
@@ -468,6 +476,7 @@ void kesshou() {
     case 9:
       // landing!!!!!
       ardrone.landing();
+      autoMode = false;
       return;
   }
 
