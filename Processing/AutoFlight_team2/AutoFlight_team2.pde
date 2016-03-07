@@ -101,9 +101,9 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   float gain_q = 4;
   float gain_y = 0.4;
   float gain_z = 0.04;
-  float gain_dz = 1.2;
-  float gain_w = 0.05;
-  float gain_dw = 1.2;
+  float gain_dz = 1.5;
+  float gain_w = 0.03;
+  float gain_dw = 1.0;
 
   if (!targetIdCandidates[targetId]) {
     targetId = NONE;
@@ -139,7 +139,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
     float GAIN_altitude = 0.4;
     float th_altitude = 200;
     float altitude_rotate = ardrone.getAltitude();
-    float P_INPUT_rotate = min(abs(GAIN_altitude * (ReF_altitude -altitude_rotate)), 30);
+    float P_INPUT_rotate = min(abs(GAIN_altitude * (ReF_altitude -altitude_rotate)), 40);
     if(altitude_rotate <ReF_altitude -th_altitude){
       if(autoMode){
         ardrone.up((int)P_INPUT_rotate);
@@ -262,7 +262,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   }
 
   if (isCenter) {
-    return (abs(z - ref_z) < th_z);
+    return (abs(z - ref_z) < 150 && abs(y - ref_y) < th_y);
   }
   return (1000 <= d && d <= 2000);
 
@@ -481,11 +481,11 @@ void kesshou() {
   }
 
   //Status 8 limit
-  if (F_Ftimer/1000 >= F_tlim_8 * F_HtimerUnit) {
+  if (F_Ftimer/1000 >= F_tlim_8) {
     statusNum = 8;
   }
   //Status 9 limt
-  if (F_Ftimer/1000 >= F_tlim_9 * F_HtimerUnit) {
+  if (F_Ftimer/1000 >= F_tlim_9) {
     statusNum = 9;
   }
 
