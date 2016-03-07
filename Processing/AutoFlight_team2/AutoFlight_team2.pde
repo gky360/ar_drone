@@ -343,6 +343,7 @@ void kesshou() {
       ref_z = 1500.0;
       ref_w = 0.0;
       isCenter = false;
+      C_status = false;
       break;
     case 2:
       targetIdCandidates[0] = true;
@@ -354,6 +355,7 @@ void kesshou() {
       ref_z = 4000.0;
       ref_w = 2000.0;
       isCenter = true;
+      C_status = true;
       break;
     case 3:
       targetIdCandidates[0] = false;
@@ -365,6 +367,7 @@ void kesshou() {
       ref_z = 1500.0;
       ref_w = 0.0;
       isCenter = false;
+      C_status = false;
       break;
     case 4:
       targetIdCandidates[0] = false;
@@ -376,6 +379,7 @@ void kesshou() {
       ref_z = 4000.0;
       ref_w = -2000.0;
       isCenter = true;
+      C_status = true;
       break;
     case 5:
       targetIdCandidates[0] = false;
@@ -392,6 +396,7 @@ void kesshou() {
         visitedSa = false;
       }
       isCenter = false;
+      C_status = false;
       break;
     case 6:
       targetIdCandidates[0] = true;
@@ -409,6 +414,7 @@ void kesshou() {
         ref_w = 0.0;
       }
       isCenter = true;
+      C_status = true;
       break;
     case 7:
       targetIdCandidates[0] = false;
@@ -420,6 +426,7 @@ void kesshou() {
       ref_z = 1500.0;
       ref_w = 0.0;
       isCenter = false;
+      C_status = false;
       break;
     case 8:
       targetIdCandidates[0] = true;
@@ -437,6 +444,7 @@ void kesshou() {
         ref_w = 0.0;
       }
       isCenter = true;
+      C_status = false;
       break;
     case 9:
       // landing!!!!!
@@ -458,12 +466,12 @@ void kesshou() {
     else {
       F_Htimer = 0;
       statusNum ++;
-      C_status = true;
+      // C_status = true;
     }
   }
 
   //Walk Timer
-  if(C_status == true) {
+  if(C_status == true && targetId != NONE) {
     if (C_S_timer < C_S_tlim * F_HtimerUnit ) C_S_timer ++;
     else {
       C_S_timer = 0;
