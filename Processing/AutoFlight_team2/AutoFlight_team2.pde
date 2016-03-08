@@ -102,7 +102,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   }
   lastTargetId = targetId;
   float gain_rotate = 0.5;
-  float input_rotate = constrain(gain_rotate * (last_q - ref_q), -20, 20);
+  float input_rotate = constrain(gain_rotate * (last_q - ref_q), -40, 40);
   int rotate_duration = 300; // [ms]
   float h = ardrone.getAltitude(); // [mm]
 
@@ -115,7 +115,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   float gain_z = 0.04;
   float gain_dz = 1.7;
   float gain_w = 0.07;
-  float gain_dw = 1.7;
+  float gain_dw = 1.8;
 
   // if (F_Btimer > 0) {
   //   F_Btimer--;
@@ -141,7 +141,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
       if (input_rotate >= 0.0) {
         text("searchLeft", width/128, height / lineCount);
         if (autoMode) {
-          if (Ftimer/rotate_duration%1==0) {
+          if (Ftimer/rotate_duration % 3==0) {
             ardrone.stop();
           } else {
             ardrone.spinLeft((int)max(abs(input_rotate), 20));
@@ -150,7 +150,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
       } else {
         text("searchRight", width/128, height / lineCount);
         if (autoMode) {
-          if (Ftimer/rotate_duration%1==0) {
+          if (Ftimer/rotate_duration % 3==0) {
             ardrone.stop();
           } else {
             ardrone.spinRight((int)max(abs(input_rotate), 10));
