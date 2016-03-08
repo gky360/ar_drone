@@ -35,7 +35,7 @@ boolean happy = true;
 int F_Ftimer = 0;
 int F_start = 0;
 int F_tlim_8 = 140;
-int F_tlim_9 = 175;
+int F_tlim_9 = 170;
 int C_S_timer = 0;
 int C_S_tlim = 12;
 boolean C_status = false;
@@ -437,7 +437,7 @@ void kesshou() {
       ref_q = 0.0;
       ref_y = 0.0;
       ref_z = 3000.0;
-      ref_w = -3000.0;
+      ref_w = 0.0;
       isCenter = true;
       C_status = true;
       // F_Btimer = 10;
@@ -472,8 +472,8 @@ void kesshou() {
         ref_z = 4000.0;
         ref_w = 0.0;
       } else if (targetId == 1) {
-        ref_z = 4000.0;
-        ref_w = -5000.0;
+        ref_z = 4500.0;
+        ref_w = -4000.0;
       } else {
         ref_z = 4000.0;
         ref_w = 0.0;
