@@ -37,7 +37,7 @@ int F_start = 0;
 int F_tlim_8 = 140;
 int F_tlim_9 = 175;
 int C_S_timer = 0;
-int C_S_tlim = 10;
+int C_S_tlim = 12;
 boolean C_status = false;
 int F_Htimer = 0;
 int F_HtimerUnit = 30;
@@ -102,7 +102,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   }
   lastTargetId = targetId;
   float gain_rotate = 0.5;
-  float input_rotate = constrain(gain_rotate * (last_q - ref_q), -40, 40);
+  float input_rotate = constrain(gain_rotate * (last_q - ref_q), -50, 50);
   int rotate_duration = 300; // [ms]
   float h = ardrone.getAltitude(); // [mm]
 
@@ -141,7 +141,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
       if (input_rotate >= 0.0) {
         text("searchLeft", width/128, height / lineCount);
         if (autoMode) {
-          if (Ftimer/rotate_duration % 3==0) {
+          if (Ftimer/rotate_duration % 4 <= 1) {
             ardrone.stop();
           } else {
             ardrone.spinLeft((int)max(abs(input_rotate), 20));
@@ -150,7 +150,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
       } else {
         text("searchRight", width/128, height / lineCount);
         if (autoMode) {
-          if (Ftimer/rotate_duration % 3==0) {
+          if (Ftimer/rotate_duration % 4 <= 1) {
             ardrone.stop();
           } else {
             ardrone.spinRight((int)max(abs(input_rotate), 10));
@@ -461,18 +461,21 @@ void kesshou() {
       // F_Btimer = 10;
       break;
     case 6:
-      targetIdCandidates[0] = true;
+      targetIdCandidates[0] = false;
       targetIdCandidates[1] = true;
       targetIdCandidates[2] = false;
       targetIdCandidates[3] = false;
       ref_q = 0.0;
       ref_y = 0.0;
       ref_z = 4000.0;
-      if (targetId == 0 || targetId == 3) {
-        ref_w = 2000.0;
-      } else if (targetId == 1 || targetId == 2) {
-        ref_w = -2000.0;
+      if (targetId == 0) {
+        ref_z = 4000.0;
+        ref_w = 0.0;
+      } else if (targetId == 1) {
+        ref_z = 4000.0;
+        ref_w = -5000.0;
       } else {
+        ref_z = 4000.0;
         ref_w = 0.0;
       }
       isCenter = true;
@@ -544,7 +547,7 @@ void kesshou() {
     // if (F_Btimer == 0) {
     //   F_Btimer = 10;
     // }
-    if (C_S_timer < C_S_tlim * F_HtimerUnit ) C_S_timer ++;
+    if (C_S_timer < ((statusNum == 6) ? 18 : C_S_tlim) * F_HtimerUnit ) C_S_timer ++;
     else {
       C_S_timer = 0;
       C_status = false;
