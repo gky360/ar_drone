@@ -69,12 +69,12 @@ int walkT = 0;
 int hoverT = 0;
 boolean direc = false;
 
-int B1lim1 = 45;
-int B1lim2 = 70 + B1lim1;
+int B1lim1 = 40;
+int B1lim2 = 40 + B1lim1;
 int B1lim3 = 20 + B1lim2;
 int B1lim4 = 0 + B1lim3;
 int B2lim1 = 5;
-int B2lim2 = 60 + B2lim1;
+int B2lim2 = 40 + B2lim1;
 int B2lim3 = 20 + B2lim2;
 int B2lim4 = 0 + B2lim3;
 // int B3lim1 = 30;
@@ -114,7 +114,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
   float gain_y = 0.4;
   float gain_z = 0.04;
   float gain_dz = 1.7;
-  float gain_w = 0.05;
+  float gain_w = 0.07;
   float gain_dw = 1.5;
 
   // if (F_Btimer > 0) {
@@ -225,7 +225,7 @@ boolean omottatoori(float ref_q, float ref_y, float ref_z, float ref_w, boolean 
         // q
         if ((q - ref_q) > th_q) {
           text("spinLeft", width/128, height / lineCount * 3);
-          if (autoMode) ardrone.spinLeft((int)(input_q * 1.2));
+          if (autoMode) ardrone.spinLeft((int)input_q);
           isInRange = false;
         } else if ((q - ref_q) < -th_q) {
           text("spinRight", width/128, height / lineCount * 3);
@@ -732,7 +732,7 @@ void draw() {
     text("mikiri now",width/128, height/12);
   }
   else if (GG) {
-    if (omottatoori(0.0, -500, 4000.0, -1800.0, true, true)) {
+    if (omottatoori(0.0, -500, 4000.0, -2000.0, true, true)) {
       text("GG",width/128, height/12);
       Htimer ++;
       if(Htimer > 30) {
